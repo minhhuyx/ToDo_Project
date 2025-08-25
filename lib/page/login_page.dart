@@ -1,8 +1,9 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:ungdung_ghichu/page/home_page.dart';
+import '../services/auth_service.dart';
 import '../widget/CustomTextField.dart';
-import '../services/api_services.dart';
+import '../services/api_service.dart';
 
 class LoginPage extends StatefulWidget {
   @override
@@ -14,12 +15,11 @@ class _LoginPageState extends State<LoginPage> {
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
 
-  final ApiService apiService = ApiService();
   bool loading = false;
 
   void _login() async {
     setState(() => loading = true);
-    bool success = await apiService.login(
+    bool success = await AuthService().login(
       _usernameController.text,
       _passwordController.text,
     );

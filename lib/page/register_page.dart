@@ -1,7 +1,8 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
-import '../services/api_services.dart';
+import '../services/api_service.dart';
+import '../services/auth_service.dart';
 import '../widget/CustomTextField.dart';
 
 class RegisterPage extends StatefulWidget {
@@ -16,7 +17,8 @@ class _RegisterPageState extends State<RegisterPage> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
 
-  final ApiService apiService = ApiService();
+  final AuthService apiAuth = AuthService();
+
   bool loading = false;
 
   void _register() async {
@@ -25,7 +27,7 @@ class _RegisterPageState extends State<RegisterPage> {
     }
 
     setState(() => loading = true);
-    final result = await apiService.register(
+    final result = await apiAuth.register(
       _usernameController.text.trim(),
       _emailController.text.trim(),
       _passwordController.text.trim(),

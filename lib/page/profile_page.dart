@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../services/api_services.dart';
+import '../services/api_service.dart';
+import '../services/auth_service.dart';
 
 class ProfilePage extends StatefulWidget {
   @override
@@ -8,7 +9,7 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-  final ApiService apiService = ApiService();
+
   Map<String, dynamic>? user;
 
   @override
@@ -18,7 +19,7 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   void _loadUser() async {
-    final data = await apiService.getUserInfo();
+    final data = await AuthService().getUserInfo();
     setState(() {
       user = data;
     });
@@ -98,7 +99,7 @@ class _ProfilePageState extends State<ProfilePage> {
                           ),
                           TextButton(
                             onPressed: () async {
-                              await apiService.logout();
+                              await AuthService().logout();
                               Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
                             },
                             child: Text('Logout'),

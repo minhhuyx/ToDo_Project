@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../services/api_services.dart';
+import '../services/api_service.dart';
+import '../services/auth_service.dart';
 import '../widget/CustomTextField.dart';
 import 'verify_otp_page.dart';
 
@@ -26,8 +27,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
     setState(() => loading = true);
 
-    final api = ApiService();
-    final response = await api.forgotPassword(email);
+    final response = await AuthService().forgotPassword(email);
 
     setState(() => loading = false);
 
@@ -64,6 +64,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.transparent, // trong suốt
         elevation: 0, // bỏ shadow

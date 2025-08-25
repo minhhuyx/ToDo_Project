@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:ungdung_ghichu/services/auth_service.dart';
 
-import '../services/api_services.dart';
+import '../services/api_service.dart';
 import '../widget/CustomTextField.dart';
 import 'reset_password_page.dart';
 
@@ -20,7 +21,7 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
   void _verifyOtp() async {
     setState(() => loading = true);
 
-    final api = ApiService(); // Tạo instance như bạn đã làm
+    final api = AuthService(); // Tạo instance như bạn đã làm
     bool success = await api.verifyOtp(widget.email, _otpController.text);
 
     setState(() => loading = false);
@@ -42,6 +43,7 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.transparent, // trong suốt
         elevation: 0, // bỏ shadow

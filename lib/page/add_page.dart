@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../widget/enhanced_button_row.dart';
+import '../services/task_service.dart';
 
 class AddPage extends StatefulWidget {
   const AddPage({super.key});
@@ -16,6 +17,85 @@ class _AddPageState extends State<AddPage> {
   DateTime? selectedDate;
   TimeOfDay? selectedTime;
 
+  bool _isLoading = false;
+
+  Future<void> _saveTask() async {
+    final title = _titleController.text.trim();
+    final notes = _notesController.text.trim();
+
+    // Validation
+    if (title.isEmpty) {
+      _showSnackBar('Vui lòng nhập tiêu đề task', Colors.red);
+      return;
+    }
+
+    if (selectedCategory.isEmpty) {
+      _showSnackBar('Vui lòng chọn category', Colors.orange);
+      return;
+    }
+
+    if (selectedDate == null || selectedTime == null) {
+      _showSnackBar('Vui lòng chọn ngày và giờ', Colors.red);
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      // Format date: "YYYY-MM-DD"
+      final formattedDate =
+          "${selectedDate!.year}-${selectedDate!.month.toString().padLeft(2, '0')}-${selectedDate!.day.toString().padLeft(2, '0')}";
+
+      // Format time: "HH:mm"
+      final hour = selectedTime!.hour;
+      final minute = selectedTime!.minute;
+      final formattedDatetime =
+          "${selectedDate!.year}-${selectedDate!.month.toString().padLeft(2,'0')}-${selectedDate!.day.toString().padLeft(2,'0')}T${selectedTime!.hour.toString().padLeft(2,'0')}:${selectedTime!.minute.toString().padLeft(2,'0')}:00";
+
+      final taskData = {
+        'title': title,
+        'notes': notes.isNotEmpty ? notes : null,
+        'category': selectedCategory.toLowerCase(),
+        'task_datetime': formattedDatetime,
+        'completed': false,
+      };
+
+      print('Task data sent: $taskData'); // debug
+
+      // Gọi API
+      final TaskService taskService = TaskService();
+      final result = await taskService.createTask(taskData);
+
+      if (result != null) {
+        _showSnackBar('Task đã được tạo thành công!', Colors.green);
+        _resetForm();
+      } else {
+        _showSnackBar('Có lỗi xảy ra khi tạo task', Colors.red);
+      }
+    } catch (e) {
+      print('Error creating task: $e');
+      _showSnackBar('Lỗi kết nối server: ${e.toString()}', Colors.red);
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+
+
+  void _showSnackBar(String message, Color backgroundColor) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: backgroundColor,
+        duration: Duration(seconds: 3),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
   // Helper function để lấy màu category
   Color _getCategoryColor() {
     switch (selectedCategory) {
@@ -96,10 +176,13 @@ class _AddPageState extends State<AddPage> {
     });
   }
 
+
   @override
   void dispose() {
     _titleController.dispose();
     _notesController.dispose();
+    selectedDate = null;
+    selectedTime = null;
     super.dispose();
   }
 
@@ -327,7 +410,7 @@ class _AddPageState extends State<AddPage> {
               width: MediaQuery.of(context).size.width * 0.9,
               height: 50,
               child: ElevatedButton(
-                onPressed: () {},
+                onPressed: _isLoading ? null : _saveTask,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.green,
                   foregroundColor: Colors.white,

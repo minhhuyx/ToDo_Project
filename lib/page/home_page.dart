@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import '../services/api_services.dart';
+import '../services/api_service.dart';
+import '../services/auth_service.dart';
 import '../widget/analogclock.dart';
 import 'login_page.dart';
 
@@ -9,7 +10,7 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  final ApiService apiService = ApiService();
+  final AuthService apiAuth = AuthService();
   Map<String, dynamic>? user;
 
   @override
@@ -19,14 +20,14 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _loadUser() async {
-    final data = await apiService.getUserInfo();
+    final data = await apiAuth.getUserInfo();
     setState(() {
       user = data;
     });
   }
 
   void _logout() async {
-    await apiService.logout();
+    await apiAuth.logout();
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (_) => LoginPage()),

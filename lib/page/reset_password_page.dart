@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:ungdung_ghichu/services/auth_service.dart';
 
-import '../services/api_services.dart';
+import '../services/api_service.dart';
 import '../widget/CustomTextField.dart';
 
 class ResetPasswordScreen extends StatefulWidget {
@@ -17,6 +18,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   final _confirmPasswordController = TextEditingController();
   bool loading = false;
 
+
   void _resetPassword() async {
 
     if (!_formKey.currentState!.validate()) {
@@ -25,7 +27,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
 
     setState(() => loading = true);
 
-    final api = ApiService();
+    final api = AuthService();
     bool success = await api.resetPassword(
       widget.email,
       _passwordController.text,
@@ -73,6 +75,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.transparent, // trong suốt
         elevation: 0, // bỏ shadow
