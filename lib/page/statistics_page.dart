@@ -1,95 +1,171 @@
 import 'package:flutter/material.dart';
+import 'package:fl_chart/fl_chart.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../services/task_service.dart'; // import service của bạn
 
-class StatisticsPage extends StatelessWidget {
+class StatisticsPage extends StatefulWidget {
+  const StatisticsPage({super.key});
+
+  @override
+  State<StatisticsPage> createState() => _StatisticsPageState();
+}
+
+class _StatisticsPageState extends State<StatisticsPage> {
+  final TaskService taskService = TaskService();
+  bool isLoading = true;
+  List<Map<String, dynamic>> tasks = [];
+  int completed = 0;
+  int pending = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTasks();
+  }
+
+  Future<void> _loadTasks() async {
+    setState(() {
+      isLoading = true;
+    });
+
+    try {
+      final fetchedTasks = await taskService.getTasks(); // Lấy task từ API
+      final completedTasks = fetchedTasks.where((t) => t['completed'] == true).length;
+      final pendingTasks = fetchedTasks.where((t) => t['completed'] == false).length;
+
+      setState(() {
+        tasks = fetchedTasks;
+        completed = completedTasks;
+        pending = pendingTasks;
+        isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        isLoading = false;
+      });
+      print('❌ Lỗi khi tải task: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lỗi khi tải task: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.all(16.0),
+    final total = completed + pending;
+    final completedPercentage = total > 0 ? (completed / total * 100).toStringAsFixed(1) : "0.0";
+    final pendingPercentage = total > 0 ? (pending / total * 100).toStringAsFixed(1) : "0.0";
+
+    return isLoading
+        ? const Center(child: CircularProgressIndicator())
+        : SingleChildScrollView(
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          SizedBox(height: 20),
-          Icon(
-            Icons.bar_chart,
-            size: 80,
-            color: Colors.purple,
+          const SizedBox(height: 20),
+          Text(
+            "Task Statistics",
+            style: GoogleFonts.inter(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
           ),
-          SizedBox(height: 30),
-          Card(
-            elevation: 4,
-            child: Padding(
-              padding: EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  Text(
-                    'Total Items',
-                    style: TextStyle(fontSize: 18, color: Colors.grey[600]),
-                  ),
-                  SizedBox(height: 8),
-                  Text(
-                    '247',
-                    style: TextStyle(
-                      fontSize: 36,
+          const SizedBox(height: 20),
+          SizedBox(
+            height: 250,
+            child: PieChart(
+              PieChartData(
+                sectionsSpace: 2,
+                centerSpaceRadius: 40,
+                sections: [
+                  PieChartSectionData(
+                    value: completed.toDouble(),
+                    color: Colors.green,
+                    title: "$completedPercentage%",
+                    radius: 80,
+                    titleStyle: GoogleFonts.inter(
+                      fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: Colors.purple,
+                      color: Colors.white,
+                    ),
+                  ),
+                  PieChartSectionData(
+                    value: pending.toDouble(),
+                    color: Colors.red,
+                    title: "$pendingPercentage%",
+                    radius: 80,
+                    titleStyle: GoogleFonts.inter(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
                     ),
                   ),
                 ],
               ),
             ),
           ),
-          SizedBox(height: 16),
+          const SizedBox(height: 20),
           Row(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Expanded(
-                child: Card(
-                  elevation: 4,
-                  child: Padding(
-                    padding: EdgeInsets.all(16),
-                    child: Column(
-                      children: [
-                        Text('This Week'),
-                        SizedBox(height: 8),
-                        Text(
-                          '23',
-                          style: TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.green,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              SizedBox(width: 16),
-              Expanded(
-                child: Card(
-                  elevation: 4,
-                  child: Padding(
-                    padding: EdgeInsets.all(16),
-                    child: Column(
-                      children: [
-                        Text('This Month'),
-                        SizedBox(height: 8),
-                        Text(
-                          '89',
-                          style: TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.blue,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
+              _buildLegend(color: Colors.green, text: "Completed"),
+              const SizedBox(width: 20),
+              _buildLegend(color: Colors.red, text: "Pending"),
             ],
+          ),
+          const SizedBox(height: 20),
+          Container(
+            margin: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.green[50],
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.green[200]!),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildStatCard('Total', total, Colors.blue),
+                _buildStatCard('Completed', completed, Colors.green),
+                _buildStatCard('Pending', pending, Colors.red),
+              ],
+            ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildLegend({required Color color, required String text}) {
+    return Row(
+      children: [
+        Container(width: 16, height: 16, color: color),
+        const SizedBox(width: 6),
+        Text(text),
+      ],
+    );
+  }
+
+  Widget _buildStatCard(String label, int value, Color color) {
+    return Column(
+      children: [
+        Text(
+          value.toString(),
+          style: GoogleFonts.inter(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+        ),
+        Text(
+          label,
+          style: GoogleFonts.inter(color: Colors.grey[600], fontSize: 12),
+        ),
+      ],
     );
   }
 }

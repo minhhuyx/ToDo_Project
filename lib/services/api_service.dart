@@ -99,4 +99,17 @@ class ApiService {
 
     return await http.delete(url, headers: headers);
   }
+
+  Future<http.Response> getRequest(String path, {bool requireAuth = false}) async {
+    final headers = {'Content-Type': 'application/json'};
+
+    if (requireAuth) {
+      final token = await storage.read(key: 'access_token');
+      if (token != null) {
+        headers['Authorization'] = 'Bearer $token';
+      }
+    }
+
+    return http.get(Uri.parse('$baseUrl$path'), headers: headers);
+  }
 }
