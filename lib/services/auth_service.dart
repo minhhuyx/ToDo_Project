@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'api_service.dart';
+import '../providers/user_provider.dart';
 
 
 class AuthService {
@@ -67,7 +68,10 @@ class AuthService {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        await _apiService.saveToken(data["access_token"]);
+        await _apiService.saveTokens(
+          accessToken: data["access_token"],
+          refreshToken: data["refresh_token"],
+        );
         return true;
       }
       return false;
@@ -77,30 +81,38 @@ class AuthService {
   }
 
   // Lấy thông tin user từ token
-  Future<Map<String, dynamic>?> getUserInfo() async {
+  Future<Map<String, dynamic>> getUserInfo() async {
     try {
       final response = await _apiService.get(
         "/api/auth/me",
         requireAuth: true,
       );
 
+      final body = jsonDecode(response.body);
       if (response.statusCode == 200) {
-        return jsonDecode(response.body);
+        return {"success": true, "user": body};
+      } else {
+        return {
+          "success": false,
+          "message": body["detail"] ?? "Không thể lấy thông tin người dùng",
+        };
       }
-      return null;
     } catch (e) {
-      return null;
+      return {
+        "success": false,
+        "message": "Lỗi kết nối server: ${e.toString()}",
+      };
     }
   }
 
   // Logout
   Future<void> logout() async {
-    await _apiService.clearToken();
+    await _apiService.clearTokens();
   }
 
   // Kiểm tra user đã đăng nhập chưa
   Future<bool> isLoggedIn() async {
-    final token = await _apiService.getToken();
+    final token = await _apiService..getRefreshToken();
     return token != null;
   }
 
@@ -159,53 +171,102 @@ class AuthService {
     }
   }
 
-  // Đổi mật khẩu (khi đã đăng nhập)
-  Future<Map<String, dynamic>> changePassword(
-      String currentPassword, String newPassword) async {
-    try {
-      final response = await _apiService.post(
-        "/api/auth/change-password",
-        body: {
-          "current_password": currentPassword,
-          "new_password": newPassword,
-        },
-        requireAuth: true,
-      );
-
-      if (response.statusCode == 200) {
-        return {"success": true, "message": "Đổi mật khẩu thành công"};
-      } else {
-        final body = jsonDecode(response.body);
+  Future<Map<String, dynamic>> updateAccount({
+    String? username,
+    String? email,
+    String? currentPassword,
+    String? newPassword,
+  }) async {
+    final Map<String, dynamic> body = {};
+    if (username != null && username.isNotEmpty) body['username'] = username;
+    if (email != null && email.isNotEmpty) body['email'] = email;
+    if (newPassword != null && newPassword.isNotEmpty) {
+      if (currentPassword == null || currentPassword.isEmpty) {
         return {
           "success": false,
-          "message": body["detail"] ?? "Đổi mật khẩu thất bại"
+          "message": "Cần nhập mật khẩu hiện tại để đổi mật khẩu"
         };
       }
-    } catch (e) {
-      return {"success": false, "message": "Lỗi kết nối server"};
+      body['current_password'] = currentPassword;
+      body['new_password'] = newPassword;
     }
-  }
 
-  // Cập nhật thông tin profile
-  Future<Map<String, dynamic>> updateProfile(Map<String, dynamic> data) async {
+    if (body.isEmpty) {
+      return {"success": false, "message": "Không có dữ liệu để cập nhật"};
+    }
+
     try {
       final response = await _apiService.put(
-        "/api/auth/profile",
-        body: data,
+        "/api/auth/update_account",
+        body: body,
         requireAuth: true,
       );
 
-      if (response.statusCode == 200) {
-        return {"success": true, "message": "Cập nhật thành công"};
+      final bodyResp = jsonDecode(response.body);
+
+      if (response.statusCode == 200 && bodyResp['success'] == true) {
+        // Nếu server trả về access token mới thì lưu lại
+        final newAccess = bodyResp['access_token'];
+        String? existingRefresh = await _apiService.getRefreshToken();
+
+        if (newAccess != null) {
+          await _apiService.saveTokens(
+            accessToken: newAccess,
+            refreshToken: existingRefresh ?? "", // giữ refresh token cũ
+          );
+        }
+
+        return {
+          "success": true,
+          "message": bodyResp['message'],
+          "user": bodyResp['user'], // username/email
+          "access_token": newAccess, // token mới (nếu có)
+        };
       } else {
-        final body = jsonDecode(response.body);
         return {
           "success": false,
-          "message": body["detail"] ?? "Cập nhật thất bại"
+          "message": bodyResp['message'] ?? "Cập nhật thất bại"
         };
       }
     } catch (e) {
       return {"success": false, "message": "Lỗi kết nối server"};
     }
   }
+
+
+
+
+
+  /// Xóa tài khoản hiện tại
+  Future<Map<String, dynamic>> deleteAccount() async {
+    try {
+      final response = await _apiService.delete(
+        "/api/auth/delete_account",
+        requireAuth: true, // token tự động gửi
+      );
+
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        return {
+          "success": true,
+          "message": body["detail"] ?? "Account deleted",
+          "tasksDeleted": body["tasks_deleted"] ?? 0,
+          "userDeleted": body["user_deleted"] ?? 0,
+        };
+      } else {
+        final body = jsonDecode(response.body);
+        return {
+          "success": false,
+          "message": body["detail"] ?? "Delete failed",
+        };
+      }
+    } catch (e) {
+      print('Lỗi khi gọi API deleteAccount: $e');
+      return {"success": false, "message": "Error connecting to server"};
+    }
+  }
+
+
+
+
 }

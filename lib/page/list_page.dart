@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'dart:convert';
-import '../services/task_service.dart';
+import 'package:provider/provider.dart';
+import '../providers/task_provider.dart';
 import '../widget/update_task_dialog.dart';
 
 class ListPage extends StatefulWidget {
@@ -12,18 +12,12 @@ class ListPage extends StatefulWidget {
 }
 
 class _ListPageState extends State<ListPage> {
-  List<Map<String, dynamic>> tasks = [];
-  bool isLoading = false;
-  final TaskService taskService = TaskService();
-
-
   // Filter states
-  String _selectedStatus = "all"; // all, completed, pending
+  String _selectedStatus = "all";
   DateTime? _selectedDateFrom;
   DateTime? _selectedDateTo;
   String? _selectedCategory;
-  String _selectedDateRange =
-      "all"; // all, today, this_week, this_month, custom
+  String _selectedDateRange = "all";
 
   // Collapsed groups state
   Map<String, bool> _collapsedGroups = {
@@ -39,42 +33,15 @@ class _ListPageState extends State<ListPage> {
   @override
   void initState() {
     super.initState();
-    loadTasks();
-  }
-
-
-
-
-  Future<void> loadTasks() async {
-    setState(() {
-      isLoading = true;
+    // Load tasks when page initializes
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<TaskProvider>().loadTasks();
     });
-    try {
-      final fetchedTasks = await taskService.getTasks();
-      setState(() {
-        tasks = fetchedTasks;
-        isLoading = false;
-      });
-      print('Tasks loaded: $tasks'); // Log để debug
-    } catch (e) {
-      print('Error loading tasks: $e');
-      setState(() {
-        isLoading = false;
-      });
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Lỗi khi tải danh sách task: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
   }
 
   void _openFilterBottomSheet() {
-    final categories =
-    tasks
+    final tasks = context.read<TaskProvider>().tasks;
+    final categories = tasks
         .map((t) => t['category'] as String)
         .where((c) => c.isNotEmpty)
         .toSet()
@@ -145,26 +112,17 @@ class _ListPageState extends State<ListPage> {
                               ChoiceChip(
                                 label: const Text("All"),
                                 selected: _selectedStatus == "all",
-                                onSelected:
-                                    (_) => setModalState(
-                                      () => _selectedStatus = "all",
-                                ),
+                                onSelected: (_) => setModalState(() => _selectedStatus = "all"),
                               ),
                               ChoiceChip(
                                 label: const Text("Completed"),
                                 selected: _selectedStatus == "completed",
-                                onSelected:
-                                    (_) => setModalState(
-                                      () => _selectedStatus = "completed",
-                                ),
+                                onSelected: (_) => setModalState(() => _selectedStatus = "completed"),
                               ),
                               ChoiceChip(
                                 label: const Text("Pending"),
                                 selected: _selectedStatus == "pending",
-                                onSelected:
-                                    (_) => setModalState(
-                                      () => _selectedStatus = "pending",
-                                ),
+                                onSelected: (_) => setModalState(() => _selectedStatus = "pending"),
                               ),
                             ],
                           ),
@@ -203,19 +161,8 @@ class _ListPageState extends State<ListPage> {
                                   setModalState(() {
                                     _selectedDateRange = "today";
                                     final today = DateTime.now();
-                                    _selectedDateFrom = DateTime(
-                                      today.year,
-                                      today.month,
-                                      today.day,
-                                    );
-                                    _selectedDateTo = DateTime(
-                                      today.year,
-                                      today.month,
-                                      today.day,
-                                      23,
-                                      59,
-                                      59,
-                                    );
+                                    _selectedDateFrom = DateTime(today.year, today.month, today.day);
+                                    _selectedDateTo = DateTime(today.year, today.month, today.day, 23, 59, 59);
                                   });
                                 },
                               ),
@@ -226,22 +173,9 @@ class _ListPageState extends State<ListPage> {
                                   setModalState(() {
                                     _selectedDateRange = "this_week";
                                     final now = DateTime.now();
-                                    final startOfWeek = now.subtract(
-                                      Duration(days: now.weekday - 1),
-                                    );
-                                    _selectedDateFrom = DateTime(
-                                      startOfWeek.year,
-                                      startOfWeek.month,
-                                      startOfWeek.day,
-                                    );
-                                    _selectedDateTo = DateTime(
-                                      startOfWeek.year,
-                                      startOfWeek.month,
-                                      startOfWeek.day + 6,
-                                      23,
-                                      59,
-                                      59,
-                                    );
+                                    final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
+                                    _selectedDateFrom = DateTime(startOfWeek.year, startOfWeek.month, startOfWeek.day);
+                                    _selectedDateTo = DateTime(startOfWeek.year, startOfWeek.month, startOfWeek.day + 6, 23, 59, 59);
                                   });
                                 },
                               ),
@@ -252,19 +186,8 @@ class _ListPageState extends State<ListPage> {
                                   setModalState(() {
                                     _selectedDateRange = "this_month";
                                     final now = DateTime.now();
-                                    _selectedDateFrom = DateTime(
-                                      now.year,
-                                      now.month,
-                                      1,
-                                    );
-                                    _selectedDateTo = DateTime(
-                                      now.year,
-                                      now.month + 1,
-                                      0,
-                                      23,
-                                      59,
-                                      59,
-                                    );
+                                    _selectedDateFrom = DateTime(now.year, now.month, 1);
+                                    _selectedDateTo = DateTime(now.year, now.month + 1, 0, 23, 59, 59);
                                   });
                                 },
                               ),
@@ -294,9 +217,7 @@ class _ListPageState extends State<ListPage> {
                                 children: [
                                   Text(
                                     "Pick a date and time",
-                                    style: GoogleFonts.inter(
-                                      fontWeight: FontWeight.w500,
-                                    ),
+                                    style: GoogleFonts.inter(fontWeight: FontWeight.w500),
                                   ),
                                   const SizedBox(height: 12),
                                   Row(
@@ -306,9 +227,7 @@ class _ListPageState extends State<ListPage> {
                                           onTap: () async {
                                             final date = await showDatePicker(
                                               context: context,
-                                              initialDate:
-                                              _selectedDateFrom ??
-                                                  DateTime.now(),
+                                              initialDate: _selectedDateFrom ?? DateTime.now(),
                                               firstDate: DateTime(2020),
                                               lastDate: DateTime(2030),
                                             );
@@ -321,28 +240,20 @@ class _ListPageState extends State<ListPage> {
                                           child: Container(
                                             padding: const EdgeInsets.all(12),
                                             decoration: BoxDecoration(
-                                              border: Border.all(
-                                                color: Colors.blue,
-                                              ),
-                                              borderRadius:
-                                              BorderRadius.circular(8),
+                                              border: Border.all(color: Colors.blue),
+                                              borderRadius: BorderRadius.circular(8),
                                             ),
                                             child: Column(
                                               children: [
                                                 Text(
                                                   "From Date",
-                                                  style: GoogleFonts.inter(
-                                                    fontSize: 12,
-                                                    color: Colors.grey,
-                                                  ),
+                                                  style: GoogleFonts.inter(fontSize: 12, color: Colors.grey),
                                                 ),
                                                 Text(
                                                   _selectedDateFrom != null
                                                       ? "${_selectedDateFrom!.day}/${_selectedDateFrom!.month}/${_selectedDateFrom!.year}"
                                                       : "Choose Date",
-                                                  style: GoogleFonts.inter(
-                                                    fontWeight: FontWeight.bold,
-                                                  ),
+                                                  style: GoogleFonts.inter(fontWeight: FontWeight.bold),
                                                 ),
                                               ],
                                             ),
@@ -357,52 +268,33 @@ class _ListPageState extends State<ListPage> {
                                           onTap: () async {
                                             final date = await showDatePicker(
                                               context: context,
-                                              initialDate:
-                                              _selectedDateTo ??
-                                                  DateTime.now(),
-                                              firstDate:
-                                              _selectedDateFrom ??
-                                                  DateTime(2020),
+                                              initialDate: _selectedDateTo ?? DateTime.now(),
+                                              firstDate: _selectedDateFrom ?? DateTime(2020),
                                               lastDate: DateTime(2030),
                                             );
                                             if (date != null) {
                                               setModalState(() {
-                                                _selectedDateTo = DateTime(
-                                                  date.year,
-                                                  date.month,
-                                                  date.day,
-                                                  23,
-                                                  59,
-                                                  59,
-                                                );
+                                                _selectedDateTo = DateTime(date.year, date.month, date.day, 23, 59, 59);
                                               });
                                             }
                                           },
                                           child: Container(
                                             padding: const EdgeInsets.all(12),
                                             decoration: BoxDecoration(
-                                              border: Border.all(
-                                                color: Colors.blue,
-                                              ),
-                                              borderRadius:
-                                              BorderRadius.circular(8),
+                                              border: Border.all(color: Colors.blue),
+                                              borderRadius: BorderRadius.circular(8),
                                             ),
                                             child: Column(
                                               children: [
                                                 Text(
                                                   "To Date",
-                                                  style: GoogleFonts.inter(
-                                                    fontSize: 12,
-                                                    color: Colors.grey,
-                                                  ),
+                                                  style: GoogleFonts.inter(fontSize: 12, color: Colors.grey),
                                                 ),
                                                 Text(
                                                   _selectedDateTo != null
                                                       ? "${_selectedDateTo!.day}/${_selectedDateTo!.month}/${_selectedDateTo!.year}"
                                                       : "Choose Date",
-                                                  style: GoogleFonts.inter(
-                                                    fontWeight: FontWeight.bold,
-                                                  ),
+                                                  style: GoogleFonts.inter(fontWeight: FontWeight.bold),
                                                 ),
                                               ],
                                             ),
@@ -423,9 +315,7 @@ class _ListPageState extends State<ListPage> {
                               alignment: Alignment.centerLeft,
                               child: Text(
                                 "Category",
-                                style: GoogleFonts.inter(
-                                  fontWeight: FontWeight.bold,
-                                ),
+                                style: GoogleFonts.inter(fontWeight: FontWeight.bold),
                               ),
                             ),
                             const SizedBox(height: 8),
@@ -436,26 +326,19 @@ class _ListPageState extends State<ListPage> {
                                 ChoiceChip(
                                   label: const Text("All"),
                                   selected: _selectedCategory == null,
-                                  onSelected:
-                                      (_) => setModalState(() {
+                                  onSelected: (_) => setModalState(() {
                                     _selectedCategory = null;
                                   }),
                                 ),
-                                ...categories
-                                    .map(
+                                ...categories.map(
                                       (cat) => ChoiceChip(
                                     label: Text(cat),
                                     selected: _selectedCategory == cat,
-                                    onSelected:
-                                        (_) => setModalState(() {
-                                      _selectedCategory =
-                                      _selectedCategory == cat
-                                          ? null
-                                          : cat;
+                                    onSelected: (_) => setModalState(() {
+                                      _selectedCategory = _selectedCategory == cat ? null : cat;
                                     }),
                                   ),
-                                )
-                                    .toList(),
+                                ).toList(),
                               ],
                             ),
                             const SizedBox(height: 16),
@@ -526,8 +409,7 @@ class _ListPageState extends State<ListPage> {
   bool _isTaskInDateRange(Map<String, dynamic> task) {
     if (_selectedDateRange == "all") return true;
 
-    final taskDateTime =
-    task['task_datetime'] != null
+    final taskDateTime = task['task_datetime'] != null
         ? DateTime.parse(task['task_datetime'])
         : null;
 
@@ -536,31 +418,24 @@ class _ListPageState extends State<ListPage> {
     }
 
     if (_selectedDateFrom != null && _selectedDateTo != null) {
-      return taskDateTime.isAfter(
-        _selectedDateFrom!.subtract(const Duration(seconds: 1)),
-      ) &&
-          taskDateTime.isBefore(
-            _selectedDateTo!.add(const Duration(seconds: 1)),
-          );
+      return taskDateTime.isAfter(_selectedDateFrom!.subtract(const Duration(seconds: 1))) &&
+          taskDateTime.isBefore(_selectedDateTo!.add(const Duration(seconds: 1)));
     }
 
     return true;
   }
 
   Map<String, List<Map<String, dynamic>>> _groupTasksByTime(List<Map<String, dynamic>> tasks) {
-    // Tạo hàm băm bao gồm tất cả các trường
+    // Create hash including all fields
     String currentHash = tasks
         .map((t) => '${t['task_id']}${t['title']}${t['category']}${t['task_datetime']}${t['notes']}${t['completed']}')
         .join();
+
     if (_lastTaskListHash == currentHash && _cachedGroupedTasks.isNotEmpty) {
-      print('Sử dụng cached grouped tasks');
       return _cachedGroupedTasks;
     }
 
-    // Xóa cache để đảm bảo dữ liệu mới
     _cachedGroupedTasks = {};
-    print('Cache cleared, grouping new tasks');
-
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
 
@@ -578,11 +453,7 @@ class _ListPageState extends State<ListPage> {
       if (taskDateTime == null) {
         groupedTasks['Today']!.add(task);
       } else {
-        final taskDate = DateTime(
-          taskDateTime.year,
-          taskDateTime.month,
-          taskDateTime.day,
-        );
+        final taskDate = DateTime(taskDateTime.year, taskDateTime.month, taskDateTime.day);
 
         if (taskDate.isBefore(today)) {
           groupedTasks['Previously']!.add(task);
@@ -600,7 +471,6 @@ class _ListPageState extends State<ListPage> {
 
     _cachedGroupedTasks = groupedTasks;
     _lastTaskListHash = currentHash;
-    print('New grouped tasks: $_cachedGroupedTasks');
 
     return groupedTasks;
   }
@@ -610,12 +480,10 @@ class _ListPageState extends State<ListPage> {
       return (a['completed'] as bool) ? 1 : -1;
     }
 
-    DateTime dateTimeA =
-    a['task_datetime'] != null
+    DateTime dateTimeA = a['task_datetime'] != null
         ? DateTime.parse(a['task_datetime'])
         : DateTime.now();
-    DateTime dateTimeB =
-    b['task_datetime'] != null
+    DateTime dateTimeB = b['task_datetime'] != null
         ? DateTime.parse(b['task_datetime'])
         : DateTime.now();
     int compare = dateTimeA.compareTo(dateTimeB);
@@ -731,19 +599,13 @@ class _ListPageState extends State<ListPage> {
                     height: 40,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color:
-                      (task['completed'] as bool)
+                      color: (task['completed'] as bool)
                           ? Colors.green.withOpacity(0.1)
                           : Colors.grey.withOpacity(0.1),
                     ),
                     child: Icon(
-                      (task['completed'] as bool)
-                          ? Icons.check_circle
-                          : Icons.circle_outlined,
-                      color:
-                      (task['completed'] as bool)
-                          ? Colors.green
-                          : Colors.grey,
+                      (task['completed'] as bool) ? Icons.check_circle : Icons.circle_outlined,
+                      color: (task['completed'] as bool) ? Colors.green : Colors.grey,
                       size: 24,
                     ),
                   ),
@@ -760,28 +622,19 @@ class _ListPageState extends State<ListPage> {
                         style: GoogleFonts.inter(
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
-                          decoration:
-                          (task['completed'] as bool)
+                          decoration: (task['completed'] as bool)
                               ? TextDecoration.lineThrough
                               : TextDecoration.none,
-                          color:
-                          (task['completed'] as bool)
-                              ? Colors.grey
-                              : Colors.black,
+                          color: (task['completed'] as bool) ? Colors.grey : Colors.black,
                         ),
                       ),
                       const SizedBox(height: 6),
                       if ((task['category'] as String).isNotEmpty)
                         Container(
                           margin: const EdgeInsets.only(bottom: 6),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 3,
-                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
-                            color: _getCategoryColor(
-                              task['category'] as String,
-                            ),
+                            color: _getCategoryColor(task['category'] as String),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Text(
@@ -796,22 +649,15 @@ class _ListPageState extends State<ListPage> {
                       if (task['task_datetime'] != null)
                         Row(
                           children: [
-                            Icon(
-                              Icons.schedule,
-                              size: 14,
-                              color: Colors.grey[600],
-                            ),
+                            Icon(Icons.schedule, size: 14, color: Colors.grey[600]),
                             const SizedBox(width: 4),
                             Text(
                               '${DateTime.parse(task['task_datetime']).day}/${DateTime.parse(task['task_datetime']).month}/${DateTime.parse(task['task_datetime']).year} ${DateTime.parse(task['task_datetime']).hour.toString().padLeft(2, '0')}:${DateTime.parse(task['task_datetime']).minute.toString().padLeft(2, '0')}',
-                              style: GoogleFonts.inter(
-                                fontSize: 12,
-                                color: Colors.grey[600],
-                              ),
+                              style: GoogleFonts.inter(fontSize: 12, color: Colors.grey[600]),
                             ),
                           ],
                         ),
-                      if ((task['notes'] as String).isNotEmpty) ...[
+                      if ((task['notes'] as String?)?.isNotEmpty ?? false) ...[
                         const SizedBox(height: 4),
                         Text(
                           task['notes'] as String,
@@ -839,11 +685,7 @@ class _ListPageState extends State<ListPage> {
                           shape: BoxShape.circle,
                           color: Colors.blue.withOpacity(0.1),
                         ),
-                        child: const Icon(
-                          Icons.edit,
-                          color: Colors.blue,
-                          size: 16,
-                        ),
+                        child: const Icon(Icons.edit, color: Colors.blue, size: 16),
                       ),
                     ),
                     const SizedBox(width: 10),
@@ -856,11 +698,7 @@ class _ListPageState extends State<ListPage> {
                           shape: BoxShape.circle,
                           color: Colors.red.withOpacity(0.1),
                         ),
-                        child: const Icon(
-                          Icons.delete,
-                          color: Colors.red,
-                          size: 16,
-                        ),
+                        child: const Icon(Icons.delete, color: Colors.red, size: 16),
                       ),
                     ),
                   ],
@@ -879,9 +717,7 @@ class _ListPageState extends State<ListPage> {
       builder: (context) {
         return AlertDialog(
           backgroundColor: Colors.grey[50],
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           insetPadding: EdgeInsets.symmetric(
             horizontal: MediaQuery.of(context).size.width * 0.05,
             vertical: 24,
@@ -898,10 +734,7 @@ class _ListPageState extends State<ListPage> {
               Expanded(
                 child: Text(
                   task['title'] as String,
-                  style: GoogleFonts.inter(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.bold),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
@@ -917,17 +750,11 @@ class _ListPageState extends State<ListPage> {
                   if ((task['category'] as String).isNotEmpty) ...[
                     Text(
                       'Category',
-                      style: GoogleFonts.inter(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 8),
                     Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
                         color: _getCategoryColor(task['category'] as String),
                         borderRadius: BorderRadius.circular(12),
@@ -942,10 +769,7 @@ class _ListPageState extends State<ListPage> {
                     const SizedBox(height: 16),
                     Text(
                       'Date & Time',
-                      style: GoogleFonts.inter(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 8),
                     Row(
@@ -959,24 +783,19 @@ class _ListPageState extends State<ListPage> {
                       ],
                     ),
                   ],
-                  if ((task['notes'] as String).isNotEmpty) ...[
+                  if ((task['notes'] as String?)?.isNotEmpty ?? false) ...[
                     const SizedBox(height: 16),
                     Text(
                       'Notes',
-                      style: GoogleFonts.inter(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       task['notes'] as String,
-                      style: GoogleFonts.inter(
-                        fontSize: 14,
-                        color: Colors.black,
-                      ),
+                      style: GoogleFonts.inter(fontSize: 14, color: Colors.black),
                     ),
                   ],
+
                 ],
               ),
             ),
@@ -993,36 +812,11 @@ class _ListPageState extends State<ListPage> {
   }
 
   void _toggleTaskCompletion(Map<String, dynamic> task) async {
-    // Lưu trạng thái cũ để rollback nếu API fail
-    final oldCompleted = task['completed'] as bool;
-    final newCompleted = !oldCompleted;
-
-    // Cập nhật UI ngay lập tức (optimistic UI)
-    setState(() {
-      task['completed'] = newCompleted;
-    });
+    final taskProvider = context.read<TaskProvider>();
 
     try {
-      // Chỉ gửi field completed
-      final taskData = {'completed': newCompleted};
-      final result = await taskService.updateTask(
-        task['task_id'] as String,
-        taskData,
-      );
-
-      if (result == null) throw Exception('Không thể cập nhật task trên server');
-
-      // Nếu muốn, có thể update task bằng kết quả server để đồng bộ dữ liệu
-      setState(() {
-        final index = tasks.indexWhere((t) => t['task_id'] == task['task_id']);
-        if (index != -1) tasks[index] = result;
-      });
+      await taskProvider.toggleTaskCompletion(task);
     } catch (e) {
-      // Rollback nếu API fail
-      setState(() {
-        task['completed'] = oldCompleted;
-      });
-
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -1034,7 +828,6 @@ class _ListPageState extends State<ListPage> {
     }
   }
 
-
   void _editTask(Map<String, dynamic> task) async {
     final updatedTask = await showDialog<Map<String, dynamic>>(
       context: context,
@@ -1042,69 +835,35 @@ class _ListPageState extends State<ListPage> {
     );
 
     if (updatedTask != null) {
-      print('Task cập nhật từ dialog: $updatedTask');
-      final oldTask = Map<String, dynamic>.from(task);
+      final taskProvider = context.read<TaskProvider>();
+      final taskData = {
+        'title': updatedTask['title'],
+        'category': updatedTask['category'],
+        'task_datetime': updatedTask['task_datetime'],
+        'notes': updatedTask['notes'],
+        'completed': updatedTask['completed'],
+      };
 
-      // Cập nhật UI tạm thời
-      setState(() {
-        final index = tasks.indexWhere((t) => t['task_id'] == task['task_id']);
-        if (index != -1) tasks[index] = updatedTask;
-      });
+      final success = await taskProvider.updateTask(task['task_id'], taskData);
 
-      try {
-        final taskData = {
-          'title': updatedTask['title'],
-          'category': updatedTask['category'],
-          'task_datetime': updatedTask['task_datetime'],
-          'notes': updatedTask['notes'],
-          'completed': updatedTask['completed'],
-        };
-
-        final result = await taskService.updateTask(task['task_id'], taskData);
-        print('Phản hồi từ server: $result');
-
-        if (result == null) throw Exception('Không thể cập nhật task trên server');
-
-        // Tải lại danh sách từ server
-        await loadTasks();
-
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Task "${updatedTask['title']}" đã được cập nhật!'),
-              backgroundColor: Colors.green,
-            ),
-          );
-        }
-      } catch (e) {
-        print('Lỗi khi cập nhật task: $e');
-        // Khôi phục trạng thái cũ nếu API thất bại
-        setState(() {
-          final index = tasks.indexWhere((t) => t['task_id'] == task['task_id']);
-          if (index != -1) tasks[index] = oldTask;
-        });
-
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Lỗi khi cập nhật task: $e'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(success
+                ? 'Task "${updatedTask['title']}" đã được cập nhật!'
+                : 'Lỗi khi cập nhật task'),
+            backgroundColor: success ? Colors.green : Colors.red,
+          ),
+        );
       }
     }
   }
-
-
 
   void _confirmDeleteTask(Map<String, dynamic> task) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Row(
           children: [
             Icon(Icons.warning, color: Colors.orange),
@@ -1121,9 +880,7 @@ class _ListPageState extends State<ListPage> {
                 text: '"${task['title']}"',
                 style: GoogleFonts.inter(fontWeight: FontWeight.bold),
               ),
-              const TextSpan(
-                text: ' không?\n\nHành động này không thể hoàn tác.',
-              ),
+              const TextSpan(text: ' không?\n\nHành động này không thể hoàn tác.'),
             ],
           ),
         ),
@@ -1145,34 +902,19 @@ class _ListPageState extends State<ListPage> {
     );
 
     if (confirm == true) {
-      try {
-        final success = await taskService.deleteTask(task['task_id'] as String);
-        if (success) {
-          setState(() {
-            tasks.removeWhere((t) => t['task_id'] == task['task_id']);
-          });
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Đã xóa task "${task['title']}"'),
-                backgroundColor: Colors.green,
-                duration: const Duration(seconds: 3),
-              ),
-            );
-          }
-        } else {
-          throw Exception('Không thể xóa task');
-        }
-      } catch (e) {
-        print('Lỗi khi xóa task: $e');
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Lỗi khi xóa task: $e'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
+      final taskProvider = context.read<TaskProvider>();
+      final success = await taskProvider.deleteTask(task['task_id'] as String);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(success
+                ? 'Đã xóa task "${task['title']}"'
+                : 'Lỗi khi xóa task'),
+            backgroundColor: success ? Colors.green : Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
       }
     }
   }
@@ -1218,9 +960,7 @@ class _ListPageState extends State<ListPage> {
           break;
         case "custom":
           if (_selectedDateFrom != null && _selectedDateTo != null) {
-            filters.add(
-              "${_selectedDateFrom!.day}/${_selectedDateFrom!.month} - ${_selectedDateTo!.day}/${_selectedDateTo!.month}",
-            );
+            filters.add("${_selectedDateFrom!.day}/${_selectedDateFrom!.month} - ${_selectedDateTo!.day}/${_selectedDateTo!.month}");
           }
           break;
       }
@@ -1238,11 +978,7 @@ class _ListPageState extends State<ListPage> {
       children: [
         Text(
           count.toString(),
-          style: GoogleFonts.inter(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: color,
-          ),
+          style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.bold, color: color),
         ),
         Text(
           label,
@@ -1252,9 +988,7 @@ class _ListPageState extends State<ListPage> {
     );
   }
 
-  int _calculateTotalItems(
-      Map<String, List<Map<String, dynamic>>> groupedTasks,
-      ) {
+  int _calculateTotalItems(Map<String, List<Map<String, dynamic>>> groupedTasks) {
     int total = 0;
 
     for (final entry in groupedTasks.entries) {
@@ -1279,10 +1013,7 @@ class _ListPageState extends State<ListPage> {
     return total;
   }
 
-  Widget _buildGroupedItem(
-      Map<String, List<Map<String, dynamic>>> groupedTasks,
-      int index,
-      ) {
+  Widget _buildGroupedItem(Map<String, List<Map<String, dynamic>>> groupedTasks, int index) {
     int currentIndex = 0;
 
     for (final entry in groupedTasks.entries) {
@@ -1329,10 +1060,7 @@ class _ListPageState extends State<ListPage> {
               ),
               style: TextButton.styleFrom(
                 foregroundColor: _getGroupColor(groupName),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               ),
             ),
           ),
@@ -1373,10 +1101,7 @@ class _ListPageState extends State<ListPage> {
     }
   }
 
-  void _showAllTasksBottomSheet(
-      String groupName,
-      List<Map<String, dynamic>> tasks,
-      ) {
+  void _showAllTasksBottomSheet(String groupName, List<Map<String, dynamic>> tasks) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -1404,10 +1129,7 @@ class _ListPageState extends State<ListPage> {
                   padding: const EdgeInsets.all(16),
                   child: Row(
                     children: [
-                      Icon(
-                        _getGroupIcon(groupName),
-                        color: _getGroupColor(groupName),
-                      ),
+                      Icon(_getGroupIcon(groupName), color: _getGroupColor(groupName)),
                       const SizedBox(width: 8),
                       Text(
                         '$groupName (${tasks.length} tasks)',
@@ -1446,240 +1168,257 @@ class _ListPageState extends State<ListPage> {
 
   @override
   Widget build(BuildContext context) {
-    // Apply filters
-    var filteredTasks =
-    tasks.where((task) {
-      // Status filter
-      if (_selectedStatus == "completed" && !(task['completed'] as bool)) {
-        return false;
-      }
-      if (_selectedStatus == "pending" && (task['completed'] as bool)) {
-        return false;
-      }
+    return Consumer<TaskProvider>(
+      builder: (context, taskProvider, child) {
+        final tasks = taskProvider.tasks;
+        final isLoading = taskProvider.isLoading;
+        final error = taskProvider.error;
 
-      // Category filter
-      if (_selectedCategory != null &&
-          task['category'] != _selectedCategory) {
-        return false;
-      }
+        // Apply filters
+        var filteredTasks = tasks.where((task) {
+          // Status filter
+          if (_selectedStatus == "completed" && !(task['completed'] as bool)) {
+            return false;
+          }
+          if (_selectedStatus == "pending" && (task['completed'] as bool)) {
+            return false;
+          }
 
-      // Date range filter
-      if (!_isTaskInDateRange(task)) {
-        return false;
-      }
+          // Category filter
+          if (_selectedCategory != null && task['category'] != _selectedCategory) {
+            return false;
+          }
 
-      return true;
-    }).toList();
+          // Date range filter
+          if (!_isTaskInDateRange(task)) {
+            return false;
+          }
 
-    // Group tasks by time
-    final groupedTasks = _groupTasksByTime(filteredTasks);
-    final totalTasks = filteredTasks.length;
-    final activeFilters = _getActiveFilterCount();
+          return true;
+        }).toList();
 
-    return RefreshIndicator(
-      onRefresh: loadTasks,
-      child:
-      isLoading
-          ? Center(child: CircularProgressIndicator())
-          : Column(
-        children: [
-          const SizedBox(height: 12),
+        // Group tasks by time
+        final groupedTasks = _groupTasksByTime(filteredTasks);
+        final totalTasks = filteredTasks.length;
+        final activeFilters = _getActiveFilterCount();
 
-          // Header with statistics and filter button
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
+        return Consumer<TaskProvider>(
+          builder: (context, taskProvider, child) {
+            final isLoading = taskProvider.isLoading;
+            final error = taskProvider.error;
+            final tasks = taskProvider.tasks;
+
+            // lọc tasks theo filter đã chọn
+            var filteredTasks = tasks.where((task) {
+              if (_selectedStatus == "completed" && !(task['completed'] as bool)) return false;
+              if (_selectedStatus == "pending" && (task['completed'] as bool)) return false;
+              if (_selectedCategory != null && task['category'] != _selectedCategory) return false;
+              if (!_isTaskInDateRange(task)) return false;
+              return true;
+            }).toList();
+
+            final groupedTasks = _groupTasksByTime(filteredTasks);
+            final totalTasks = filteredTasks.length;
+            final activeFilters = _getActiveFilterCount();
+
+            if (isLoading) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            return Column(
               children: [
-                // Statistics overview
-                Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.green, width: 1),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.grey,
-                          blurRadius: 4,
-                          offset: const Offset(0, 2),
+                const SizedBox(height: 12),
+
+                // Header with statistics and filter button
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Row(
+                    children: [
+                      // Statistics overview
+                      Expanded(
+                        child: Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.green, width: 1),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.grey,
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: [
+                              _buildStatItem('Total', totalTasks, Colors.blue),
+                              _buildStatItem('Previously', groupedTasks['Previously']!.length, Colors.red),
+                              _buildStatItem('Today', groupedTasks['Today']!.length, Colors.blue),
+                              _buildStatItem('Future', groupedTasks['Future']!.length, Colors.green),
+                            ],
+                          ),
                         ),
-                      ],
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        _buildStatItem(
-                          'Total',
-                          totalTasks,
-                          Colors.blue,
-                        ),
-                        _buildStatItem(
-                          'Previously',
-                          groupedTasks['Previously']!.length,
-                          Colors.red,
-                        ),
-                        _buildStatItem(
-                          'Today',
-                          groupedTasks['Today']!.length,
-                          Colors.blue,
-                        ),
-                        _buildStatItem(
-                          'Future',
-                          groupedTasks['Future']!.length,
-                          Colors.green,
-                        ),
-                      ],
-                    ),
+                      ),
+
+                      const SizedBox(width: 12),
+
+                      // Filter button with badge
+                      Stack(
+                        children: [
+                          TextButton.icon(
+                            onPressed: _openFilterBottomSheet,
+                            icon: const Icon(Icons.filter_list, size: 18),
+                            label: Text(
+                              "Filter",
+                              style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 16),
+                            ),
+                            style: TextButton.styleFrom(
+                              backgroundColor: Colors.transparent,
+                              foregroundColor: Colors.black,
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            ),
+                          ),
+                          if (activeFilters > 0)
+                            Positioned(
+                              right: 0,
+                              top: 0,
+                              child: Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: const BoxDecoration(
+                                  color: Colors.red,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Text(
+                                  activeFilters.toString(),
+                                  style: GoogleFonts.inter(
+                                    color: Colors.white,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
 
-                const SizedBox(width: 12),
-
-                // Filter button with badge
-                Stack(
-                  children: [
-                    TextButton.icon(
-                      onPressed: _openFilterBottomSheet,
-                      icon: const Icon(Icons.filter_list, size: 18),
-                      label: Text(
-                        "Filter",
-                        style: GoogleFonts.inter(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                      style: TextButton.styleFrom(
-                        backgroundColor: Colors.transparent,
-                        foregroundColor: Colors.black,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
-                        ),
-                      ),
+                // Show active filters
+                if (activeFilters > 0) ...[
+                  const SizedBox(height: 8),
+                  Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 16),
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.orange[50],
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.orange[200]!),
                     ),
-                    if (activeFilters > 0)
-                      Positioned(
-                        right: 0,
-                        top: 0,
-                        child: Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: const BoxDecoration(
-                            color: Colors.red,
-                            shape: BoxShape.circle,
-                          ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.info_outline, color: Colors.orange[700], size: 16),
+                        const SizedBox(width: 8),
+                        Expanded(
                           child: Text(
-                            activeFilters.toString(),
+                            _getActiveFiltersDescription(),
                             style: GoogleFonts.inter(
-                              color: Colors.white,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
+                              color: Colors.orange[700],
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
                         ),
-                      ),
-                  ],
+                        GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              _selectedStatus = "all";
+                              _selectedDateRange = "all";
+                              _selectedDateFrom = null;
+                              _selectedDateTo = null;
+                              _selectedCategory = null;
+                            });
+                          },
+                          child: Icon(Icons.clear, color: Colors.orange[700], size: 16),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+
+                // Error message
+                if (error != null) ...[
+                  const SizedBox(height: 8),
+                  Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 16),
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.red[50],
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.red[200]!),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.error_outline, color: Colors.red[700], size: 16),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Lỗi: $error',
+                            style: GoogleFonts.inter(color: Colors.red[700], fontSize: 12),
+                          ),
+                        ),
+                        GestureDetector(
+                          onTap: () => taskProvider.clearError(),
+                          child: Icon(Icons.clear, color: Colors.red[700], size: 16),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+
+                const SizedBox(height: 12),
+
+                // Task list grouped by time
+                Expanded(
+                  child: totalTasks == 0
+                      ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.inbox_outlined, size: 64, color: Colors.grey[400]),
+                        const SizedBox(height: 16),
+                        Text(
+                          "Không có công việc nào",
+                          style: GoogleFonts.inter(
+                            fontSize: 18,
+                            color: Colors.grey[600],
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          activeFilters > 0
+                              ? "Không tìm thấy công việc phù hợp với bộ lọc"
+                              : "Hãy thêm công việc đầu tiên của bạn!",
+                          style: GoogleFonts.inter(color: Colors.grey[500]),
+                        ),
+                      ],
+                    ),
+                  )
+                      : ListView.builder(
+                    padding: const EdgeInsets.only(bottom: 20),
+                    itemCount: _calculateTotalItems(groupedTasks),
+                    itemBuilder: (context, index) {
+                      return _buildGroupedItem(groupedTasks, index);
+                    },
+                  ),
                 ),
               ],
-            ),
-          ),
-
-          // Show active filters
-          if (activeFilters > 0) ...[
-            const SizedBox(height: 8),
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 16),
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.orange[50],
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.orange[200]!),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.info_outline,
-                    color: Colors.orange[700],
-                    size: 16,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      _getActiveFiltersDescription(),
-                      style: GoogleFonts.inter(
-                        color: Colors.orange[700],
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                  GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        _selectedStatus = "all";
-                        _selectedDateRange = "all";
-                        _selectedDateFrom = null;
-                        _selectedDateTo = null;
-                        _selectedCategory = null;
-                      });
-                    },
-                    child: Icon(
-                      Icons.clear,
-                      color: Colors.orange[700],
-                      size: 16,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-
-          const SizedBox(height: 12),
-
-          // Task list grouped by time
-          Expanded(
-            child:
-            totalTasks == 0
-                ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.inbox_outlined,
-                    size: 64,
-                    color: Colors.grey[400],
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    "Không có công việc nào",
-                    style: GoogleFonts.inter(
-                      fontSize: 18,
-                      color: Colors.grey[600],
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    activeFilters > 0
-                        ? "Không tìm thấy công việc phù hợp với bộ lọc"
-                        : "Hãy thêm công việc đầu tiên của bạn!",
-                    style: GoogleFonts.inter(
-                      color: Colors.grey[500],
-                    ),
-                  ),
-                ],
-              ),
-            )
-                : ListView.builder(
-              padding: const EdgeInsets.only(bottom: 20),
-              itemCount: _calculateTotalItems(groupedTasks),
-              itemBuilder: (context, index) {
-                return _buildGroupedItem(groupedTasks, index);
-              },
-            ),
-          ),
-        ],
-      ),
+            );
+          },
+        );
+      },
     );
   }
 }

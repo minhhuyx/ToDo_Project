@@ -20,16 +20,23 @@ class TaskService {
   }
 
   Future<List<Map<String, dynamic>>> getTasks() async {
-    final response = await _api.getRequest("/api/task", requireAuth: true);
+    try {
+      // Gọi API sử dụng cơ chế auto-refresh token
+      final response = await _api.get("/api/task", requireAuth: true);
 
-    if (response.statusCode == 200) {
-      final List data = jsonDecode(response.body);
-      return List<Map<String, dynamic>>.from(data);
-    } else {
-      print('Get tasks failed: ${response.body}');
+      if (response.statusCode == 200) {
+        final List data = jsonDecode(response.body);
+        return List<Map<String, dynamic>>.from(data);
+      } else {
+        print('Get tasks failed: ${response.statusCode} - ${response.body}');
+        return [];
+      }
+    } catch (e) {
+      print('Get tasks error: $e');
       return [];
     }
   }
+
 
   Future<Map<String, dynamic>?> updateTask(String taskId, Map<String, dynamic> task) async {
     final response = await _api.put(

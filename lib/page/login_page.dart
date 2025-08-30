@@ -52,115 +52,117 @@ class _LoginPageState extends State<LoginPage> {
           },
         ),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // widget sát lề trái
-            FractionallySizedBox(
-              widthFactor: 0.7, // chỉ chiếm 70% chiều rộng parent
-              child: Text(
-                "Welcome back! Glad to see you. Again!",
-                style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // widget sát lề trái
+              FractionallySizedBox(
+                widthFactor: 0.7, // chỉ chiếm 70% chiều rộng parent
+                child: Text(
+                  "Welcome back! Glad to see you. Again!",
+                  style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
+                ),
               ),
-            ),
-            SizedBox(height: 30),
-            Form(
-              key: _formKey,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  CustomTextField(
-                    controller: _usernameController,
-                    labelText: "Username",
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return "Vui lòng nhập username";
-                      }
-                      return null;
-                    },
-                  ),
-                  SizedBox(height: 20),
-                  CustomTextField(
-                    controller: _passwordController,
-                    labelText: "Password",
-                    isPassword: true,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return "Vui lòng nhập mật khẩu";
-                      }
-                      return null;
-                    },
-                  ),
-                  SizedBox(height: 20),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: RichText(
-                      text: TextSpan(
-                        children: [
-                          TextSpan(
-                            text: "Forgot Password?",
-                            style: TextStyle(
-                              color: Colors.blue,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            recognizer:
-                                TapGestureRecognizer()
-                                  ..onTap = () {
-                                    Navigator.pushNamed(context, '/forgot');
-                                  },
-                          ),
-                        ],
-                      ),
+              SizedBox(height: 30),
+              Form(
+                key: _formKey,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    CustomTextField(
+                      controller: _usernameController,
+                      labelText: "Username",
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return "Vui lòng nhập username";
+                        }
+                        return null;
+                      },
                     ),
-                  ),
-                  SizedBox(height: 32),
-                  SizedBox(
-                    width: double.infinity, // full width
-                    height: 50,
-                    child: ElevatedButton(
-                      onPressed: loading ? null : _login,
-                      child: Text(loading ? "Loading..." : "Login"),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.black, // màu nền
-                        foregroundColor: Colors.white, // màu chữ
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(
-                            5,
-                          ), // bán kính bo tròn
+                    SizedBox(height: 20),
+                    CustomTextField(
+                      controller: _passwordController,
+                      labelText: "Password",
+                      isPassword: true,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return "Vui lòng nhập mật khẩu";
+                        }
+                        return null;
+                      },
+                    ),
+                    SizedBox(height: 20),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: RichText(
+                        text: TextSpan(
+                          children: [
+                            TextSpan(
+                              text: "Forgot Password?",
+                              style: TextStyle(
+                                color: Colors.blue,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              recognizer:
+                              TapGestureRecognizer()
+                                ..onTap = () {
+                                  Navigator.pushNamed(context, '/forgot');
+                                },
+                            ),
+                          ],
                         ),
                       ),
                     ),
-                  ),
-                ],
-              ),
-            ),
-            SizedBox(height: 20),
-            Center(
-              child: RichText(
-                text: TextSpan(
-                  text: "Don't have an account? ",
-                  style: TextStyle(color: Colors.black, fontSize: 16),
-                  children: [
-                    TextSpan(
-                      text: "Register now",
-                      style: TextStyle(
-                        color: Colors.blue,
-                        fontWeight: FontWeight.bold,
+                    SizedBox(height: 32),
+                    SizedBox(
+                      width: double.infinity, // full width
+                      height: 50,
+                      child: ElevatedButton(
+                        onPressed: loading ? null : _login,
+                        child: Text(loading ? "Loading..." : "Login"),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.black, // màu nền
+                          foregroundColor: Colors.white, // màu chữ
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(
+                              5,
+                            ), // bán kính bo tròn
+                          ),
+                        ),
                       ),
-                      recognizer:
-                          TapGestureRecognizer()
-                            ..onTap = () {
-                              // Xử lý chuyển sang màn hình Register
-                              Navigator.pushNamed(context, '/register');
-                            },
                     ),
                   ],
                 ),
               ),
-            ),
-          ],
+              SizedBox(height: 20),
+              Center(
+                child: RichText(
+                  text: TextSpan(
+                    text: "Don't have an account? ",
+                    style: TextStyle(color: Colors.black, fontSize: 16),
+                    children: [
+                      TextSpan(
+                        text: "Register now",
+                        style: TextStyle(
+                          color: Colors.blue,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        recognizer:
+                        TapGestureRecognizer()
+                          ..onTap = () {
+                            // Xử lý chuyển sang màn hình Register
+                            Navigator.pushNamed(context, '/register');
+                          },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -1,62 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../services/task_service.dart'; // import service của bạn
+import 'package:provider/provider.dart';
+import '../providers/task_provider.dart'; // import provider
 
-class StatisticsPage extends StatefulWidget {
+class StatisticsPage extends StatelessWidget {
   const StatisticsPage({super.key});
 
   @override
-  State<StatisticsPage> createState() => _StatisticsPageState();
-}
-
-class _StatisticsPageState extends State<StatisticsPage> {
-  final TaskService taskService = TaskService();
-  bool isLoading = true;
-  List<Map<String, dynamic>> tasks = [];
-  int completed = 0;
-  int pending = 0;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadTasks();
-  }
-
-  Future<void> _loadTasks() async {
-    setState(() {
-      isLoading = true;
-    });
-
-    try {
-      final fetchedTasks = await taskService.getTasks(); // Lấy task từ API
-      final completedTasks = fetchedTasks.where((t) => t['completed'] == true).length;
-      final pendingTasks = fetchedTasks.where((t) => t['completed'] == false).length;
-
-      setState(() {
-        tasks = fetchedTasks;
-        completed = completedTasks;
-        pending = pendingTasks;
-        isLoading = false;
-      });
-    } catch (e) {
-      setState(() {
-        isLoading = false;
-      });
-      print('❌ Lỗi khi tải task: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Lỗi khi tải task: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
+    // Lắng nghe TaskProvider
+    final taskProvider = context.watch<TaskProvider>();
+    final tasks = taskProvider.tasks;
+    final isLoading = taskProvider.isLoading;
+
+    final completed = tasks.where((t) => t['completed'] == true).length;
+    final pending = tasks.where((t) => t['completed'] == false).length;
     final total = completed + pending;
     final completedPercentage = total > 0 ? (completed / total * 100).toStringAsFixed(1) : "0.0";
     final pendingPercentage = total > 0 ? (pending / total * 100).toStringAsFixed(1) : "0.0";

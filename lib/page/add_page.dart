@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../widget/enhanced_button_row.dart';
-import '../services/task_service.dart';
+import '../providers/task_provider.dart';
 
 class AddPage extends StatefulWidget {
   const AddPage({super.key});
@@ -44,13 +45,7 @@ class _AddPageState extends State<AddPage> {
     });
 
     try {
-      // Format date: "YYYY-MM-DD"
-      final formattedDate =
-          "${selectedDate!.year}-${selectedDate!.month.toString().padLeft(2, '0')}-${selectedDate!.day.toString().padLeft(2, '0')}";
-
-      // Format time: "HH:mm"
-      final hour = selectedTime!.hour;
-      final minute = selectedTime!.minute;
+      // Format datetime: "YYYY-MM-DDTHH:mm:ss"
       final formattedDatetime =
           "${selectedDate!.year}-${selectedDate!.month.toString().padLeft(2,'0')}-${selectedDate!.day.toString().padLeft(2,'0')}T${selectedTime!.hour.toString().padLeft(2,'0')}:${selectedTime!.minute.toString().padLeft(2,'0')}:00";
 
@@ -64,13 +59,17 @@ class _AddPageState extends State<AddPage> {
 
       print('Task data sent: $taskData'); // debug
 
-      // Gọi API
-      final TaskService taskService = TaskService();
-      final result = await taskService.createTask(taskData);
+      // Use TaskProvider to add task
+      final taskProvider = context.read<TaskProvider>();
+      final success = await taskProvider.addTask(taskData);
 
-      if (result != null) {
+      if (success) {
         _showSnackBar('Task đã được tạo thành công!', Colors.green);
         _resetForm();
+
+        // Optional: Switch to list tab after successful creation
+        // You can implement this by using a callback or navigation
+        // For example, if you have a TabController, you can switch tabs here
       } else {
         _showSnackBar('Có lỗi xảy ra khi tạo task', Colors.red);
       }
@@ -84,8 +83,6 @@ class _AddPageState extends State<AddPage> {
     }
   }
 
-
-
   void _showSnackBar(String message, Color backgroundColor) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -96,6 +93,7 @@ class _AddPageState extends State<AddPage> {
       ),
     );
   }
+
   // Helper function để lấy màu category
   Color _getCategoryColor() {
     switch (selectedCategory) {
@@ -116,7 +114,6 @@ class _AddPageState extends State<AddPage> {
       selectedCategory = 'Note';
     });
     print("Category selected: Note");
-
   }
 
   void _handleCalendarPressed() {
@@ -124,7 +121,6 @@ class _AddPageState extends State<AddPage> {
       selectedCategory = 'Calendar';
     });
     print("Category selected: Calendar");
-
   }
 
   void _handleAchievementPressed() {
@@ -132,7 +128,6 @@ class _AddPageState extends State<AddPage> {
       selectedCategory = 'Achievement';
     });
     print("Category selected: Achievement");
-
   }
 
   // Hàm chọn ngày
@@ -176,259 +171,311 @@ class _AddPageState extends State<AddPage> {
     });
   }
 
-
   @override
   void dispose() {
     _titleController.dispose();
     _notesController.dispose();
-    selectedDate = null;
-    selectedTime = null;
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Task Title Section
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-            child: Text(
-              "Task Title",
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Colors.grey[700],
-              ),
-            ),
-          ),
-          SizedBox(height: 12),
-          Center(
-            child: SizedBox(
-              width: MediaQuery.of(context).size.width * 0.9,
-              child: TextField(
-                controller: _titleController,
-                decoration: InputDecoration(
-                  hintText: 'Nhập tiêu đề task...',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+    return Consumer<TaskProvider>(
+      builder: (context, taskProvider, child) {
+        // Show loading state from provider if needed
+        final isProviderLoading = taskProvider.isLoading;
+        final providerError = taskProvider.error;
+
+        return SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Show provider error if any
+              if (providerError != null) ...[
+                Container(
+                  margin: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.red[50],
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.red[200]!),
                   ),
-                  filled: true,
-                  fillColor: Colors.white,
-                  contentPadding: EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
+                  child: Row(
+                    children: [
+                      Icon(Icons.error_outline, color: Colors.red[700], size: 20),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Lỗi: $providerError',
+                          style: TextStyle(color: Colors.red[700], fontSize: 14),
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: () => taskProvider.clearError(),
+                        child: Icon(Icons.clear, color: Colors.red[700], size: 16),
+                      ),
+                    ],
                   ),
                 ),
-              ),
-            ),
-          ),
+              ],
 
-          // Category Section
-          SizedBox(height: 24),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Text(
-                  "Category",
+              // Task Title Section
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+                child: Text(
+                  "Task Title",
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                     color: Colors.grey[700],
                   ),
                 ),
-                if (selectedCategory.isNotEmpty)
-                  Container(
-                    margin: EdgeInsets.only(left: 12),
-                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: _getCategoryColor(),
-                      borderRadius: BorderRadius.circular(12),
+              ),
+              SizedBox(height: 12),
+              Center(
+                child: SizedBox(
+                  width: MediaQuery.of(context).size.width * 0.9,
+                  child: TextField(
+                    controller: _titleController,
+                    decoration: InputDecoration(
+                      hintText: 'Nhập tiêu đề task...',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      filled: true,
+                      fillColor: Colors.white,
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
                     ),
-                    child: Text(
-                      selectedCategory,
+                  ),
+                ),
+              ),
+
+              // Category Section
+              SizedBox(height: 24),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Text(
+                      "Category",
                       style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey[700],
                       ),
                     ),
-                  ),
-              ],
-            ),
-          ),
-          EnhancedButtonRow(
-            onNotePressed: _handleNotePressed,
-            onCalendarPressed: _handleCalendarPressed,
-            onAchievementPressed: _handleAchievementPressed,
-          ),
-
-          // When Section
-          SizedBox(height: 16),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
-            child: Text(
-              "When",
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Colors.grey[700],
-              ),
-            ),
-          ),
-          SizedBox(height: 12),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-            child: Row(
-              children: [
-                // Date picker
-                Expanded(
-                  child: GestureDetector(
-                    onTap: _selectDate,
-                    child: Container(
-                      padding: EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [Colors.blue.shade400, Colors.blue.shade200],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
+                    if (selectedCategory.isNotEmpty)
+                      Container(
+                        margin: EdgeInsets.only(left: 12),
+                        padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: _getCategoryColor(),
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black26,
-                            blurRadius: 6,
-                            offset: Offset(0, 3),
+                        child: Text(
+                          selectedCategory,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
                           ),
-                        ],
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(Icons.calendar_today, color: Colors.white, size: 20),
-                          SizedBox(width: 8),
-                          Text(
-                            selectedDate != null
-                                ? '${selectedDate!.day}/${selectedDate!.month}/${selectedDate!.year}'
-                                : 'Chọn ngày',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                SizedBox(width: 12),
-                // Time picker
-                Expanded(
-                  child: GestureDetector(
-                    onTap: _selectTime,
-                    child: Container(
-                      padding: EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [Colors.purple.shade400, Colors.purple.shade200],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
                         ),
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black26,
-                            blurRadius: 6,
-                            offset: Offset(0, 3),
-                          ),
-                        ],
                       ),
-                      child: Row(
-                        children: [
-                          Icon(Icons.access_time, color: Colors.white, size: 20),
-                          SizedBox(width: 8),
-                          Text(
-                            selectedTime != null
-                                ? selectedTime!.format(context)
-                                : 'Chọn giờ',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          )
-,
-
-          // Notes Section
-          SizedBox(height: 24),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
-            child: Text(
-              "Notes",
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Colors.grey[700],
-              ),
-            ),
-          ),
-          SizedBox(height: 12),
-          Center(
-            child: SizedBox(
-              width: MediaQuery.of(context).size.width * 0.9,
-              child: TextField(
-                controller: _notesController,
-                maxLines: 5,
-                decoration: InputDecoration(
-                  hintText: 'Thêm ghi chú cho task...',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  filled: true,
-                  fillColor: Colors.white,
-                  contentPadding: EdgeInsets.all(16),
-                  alignLabelWithHint: true,
+                  ],
                 ),
               ),
-            ),
-          ),
+              EnhancedButtonRow(
+                onNotePressed: _handleNotePressed,
+                onCalendarPressed: _handleCalendarPressed,
+                onAchievementPressed: _handleAchievementPressed,
+              ),
 
-          // Save Button
-          SizedBox(height: 32),
-          Center(
-            child: SizedBox(
-              width: MediaQuery.of(context).size.width * 0.9,
-              height: 50,
-              child: ElevatedButton(
-                onPressed: _isLoading ? null : _saveTask,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  elevation: 2,
-                ),
+              // When Section
+              SizedBox(height: 16),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
                 child: Text(
-                  'Save Task',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  "When",
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.grey[700],
+                  ),
                 ),
               ),
-            ),
+              SizedBox(height: 12),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                child: Row(
+                  children: [
+                    // Date picker
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: _selectDate,
+                        child: Container(
+                          padding: EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [Colors.blue.shade400, Colors.blue.shade200],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black26,
+                                blurRadius: 6,
+                                offset: Offset(0, 3),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(Icons.calendar_today, color: Colors.white, size: 20),
+                              SizedBox(width: 8),
+                              Text(
+                                selectedDate != null
+                                    ? '${selectedDate!.day}/${selectedDate!.month}/${selectedDate!.year}'
+                                    : 'Chọn ngày',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: 12),
+                    // Time picker
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: _selectTime,
+                        child: Container(
+                          padding: EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [Colors.purple.shade400, Colors.purple.shade200],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black26,
+                                blurRadius: 6,
+                                offset: Offset(0, 3),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(Icons.access_time, color: Colors.white, size: 20),
+                              SizedBox(width: 8),
+                              Text(
+                                selectedTime != null
+                                    ? selectedTime!.format(context)
+                                    : 'Chọn giờ',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Notes Section
+              SizedBox(height: 24),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+                child: Text(
+                  "Notes",
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.grey[700],
+                  ),
+                ),
+              ),
+              SizedBox(height: 12),
+              Center(
+                child: SizedBox(
+                  width: MediaQuery.of(context).size.width * 0.9,
+                  child: TextField(
+                    controller: _notesController,
+                    maxLines: 5,
+                    decoration: InputDecoration(
+                      hintText: 'Thêm ghi chú cho task...',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      filled: true,
+                      fillColor: Colors.white,
+                      contentPadding: EdgeInsets.all(16),
+                      alignLabelWithHint: true,
+                    ),
+                  ),
+                ),
+              ),
+
+              // Save Button
+              SizedBox(height: 32),
+              Center(
+                child: SizedBox(
+                  width: MediaQuery.of(context).size.width * 0.9,
+                  height: 50,
+                  child: ElevatedButton(
+                    onPressed: (_isLoading || isProviderLoading) ? null : _saveTask,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 2,
+                    ),
+                    child: (_isLoading || isProviderLoading)
+                        ? Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        ),
+                        SizedBox(width: 12),
+                        Text(
+                          'Đang lưu...',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                        ),
+                      ],
+                    )
+                        : Text(
+                      'Save Task',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ),
+              ),
+              SizedBox(height: 32),
+            ],
           ),
-          SizedBox(height: 32),
-        ],
-      ),
+        );
+      },
     );
   }
 }
