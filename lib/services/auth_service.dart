@@ -1,7 +1,6 @@
 import 'dart:convert';
-
 import 'api_service.dart';
-import '../providers/user_provider.dart';
+
 
 
 class AuthService {

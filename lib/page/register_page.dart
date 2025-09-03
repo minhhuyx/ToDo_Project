@@ -118,90 +118,92 @@ class _RegisterPageState extends State<RegisterPage> {
           },
         ),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            FractionallySizedBox(
-              widthFactor: 0.7, // chỉ chiếm 70% chiều rộng parent
-              child: Text("Hello! Register to get started",style: TextStyle(fontSize: 30,fontWeight: FontWeight.bold),),
-            ),
-            SizedBox(height: 30),
-            Form(
-              key: _formKey,
-              child: Column(
-                children: [
-                  CustomTextField(
-                    controller: _usernameController,
-                    labelText: "Username",
-                    validator: validateUsername,
-                  ),
-                  SizedBox(height: 20),
-                  CustomTextField(
-                    controller: _emailController,
-                    labelText: "Email",
-                    validator: validateEmail,
-                  ),
-                  SizedBox(height: 20),
-                  CustomTextField(
-                    controller: _passwordController,
-                    labelText: "Password",
-                    isPassword: true,
-                    validator: validatePassword,
-                  ),
-                  SizedBox(height: 20),
-                  CustomTextField(
-                    controller: _confirmPasswordController,
-                    labelText: "Confirm Password",
-                    isPassword: true,
-                    validator: validateConfirmPassword,
-                  ),
-                  SizedBox(height: 32),
-                  SizedBox(
-                    width: double.infinity, // full width
-                    height: 50,
-                    child: ElevatedButton(
-                      onPressed: loading ? null : _register,
-                      child: Text(loading ? "Loading..." : "Register"),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.black, // màu nền
-                        foregroundColor: Colors.white, // màu chữ
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(
-                            5,
-                          ), // bán kính bo tròn
+      body:SingleChildScrollView(
+        child:  Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              FractionallySizedBox(
+                widthFactor: 0.7, // chỉ chiếm 70% chiều rộng parent
+                child: Text("Hello! Register to get started",style: TextStyle(fontSize: 30,fontWeight: FontWeight.bold),),
+              ),
+              SizedBox(height: 30),
+              Form(
+                key: _formKey,
+                child: Column(
+                  children: [
+                    CustomTextField(
+                      controller: _usernameController,
+                      labelText: "Username",
+                      validator: validateUsername,
+                    ),
+                    SizedBox(height: 20),
+                    CustomTextField(
+                      controller: _emailController,
+                      labelText: "Email",
+                      validator: validateEmail,
+                    ),
+                    SizedBox(height: 20),
+                    CustomTextField(
+                      controller: _passwordController,
+                      labelText: "Password",
+                      isPassword: true,
+                      validator: validatePassword,
+                    ),
+                    SizedBox(height: 20),
+                    CustomTextField(
+                      controller: _confirmPasswordController,
+                      labelText: "Confirm Password",
+                      isPassword: true,
+                      validator: validateConfirmPassword,
+                    ),
+                    SizedBox(height: 32),
+                    SizedBox(
+                      width: double.infinity, // full width
+                      height: 50,
+                      child: ElevatedButton(
+                        onPressed: loading ? null : _register,
+                        child: Text(loading ? "Loading..." : "Register"),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.black, // màu nền
+                          foregroundColor: Colors.white, // màu chữ
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(
+                              5,
+                            ), // bán kính bo tròn
+                          ),
                         ),
                       ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            SizedBox(height: 20,),
-            Center(
-              child: RichText(
-                text: TextSpan(
-                  text: "Already have an account? ",
-                  style: TextStyle(color: Colors.black, fontSize: 16),
-                  children: [
-                    TextSpan(
-                      text: "Login now",
-                      style: TextStyle(
-                        color: Colors.blue,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      recognizer: TapGestureRecognizer()
-                        ..onTap = () {
-                          // Xử lý chuyển sang màn hình Register
-                          Navigator.pushNamed(context, '/login');
-                        },
                     ),
                   ],
                 ),
               ),
-            )
-          ],
+              SizedBox(height: 20,),
+              Center(
+                child: RichText(
+                  text: TextSpan(
+                    text: "Already have an account? ",
+                    style: TextStyle(color: Colors.black, fontSize: 16),
+                    children: [
+                      TextSpan(
+                        text: "Login now",
+                        style: TextStyle(
+                          color: Colors.blue,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        recognizer: TapGestureRecognizer()
+                          ..onTap = () {
+                            // Xử lý chuyển sang màn hình Register
+                            Navigator.pushNamed(context, '/login');
+                          },
+                      ),
+                    ],
+                  ),
+                ),
+              )
+            ],
+          ),
         ),
       ),
     );

@@ -1,8 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../providers/user_provider.dart';
-import '../services/auth_service.dart';
-import 'dart:async';
 
 // Constants
 class ProfileConstants {
@@ -10,7 +6,6 @@ class ProfileConstants {
   static const int minPasswordLength = 6;
   static const int minUsernameLength = 3;
   static const int maxUsernameLength = 20;
-  static const Duration updateDebounce = Duration(milliseconds: 500);
 }
 
 // Validation helper class
@@ -18,11 +13,9 @@ class ProfileValidation {
   static final RegExp _emailRegex = RegExp(
       r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
   );
-
   static final RegExp _passwordRegex = RegExp(
       r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{6,}$'
   );
-
   static final RegExp _usernameRegex = RegExp(r'^[a-zA-Z0-9_]+$');
 
   static String? validateEmail(String email) {
@@ -70,77 +63,34 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-  Timer? _updateTimer;
   bool _isLoading = false;
+  Map<String, dynamic> _user = {
+    'username': 'demo_user',
+    'email': 'demo@example.com',
+  };
 
-
-  @override
-  void initState() {
-    super.initState();
-    _loadUser();
-  }
-
-  @override
-  void dispose() {
-    _updateTimer?.cancel();
-    super.dispose();
-  }
-
-  Future<void> _loadUser() async {
-    if (!mounted) return;
-
-    setState(() => _isLoading = true);
-
-    try {
-      final userProvider = Provider.of<UserProvider>(context, listen: false);
-      final data = await AuthService().getUserInfo();
-
-      if (!mounted) return;
-
-      if (data['success'] == true && data['user'] != null) {
-        final userData = data['user'] as Map<String, dynamic>;
-        userProvider.setUser(userData);
-      } else {
-        userProvider.clearUser();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(data['message'] ?? 'Không thể tải thông tin người dùng'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Lỗi tải dữ liệu người dùng: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
-    }
+  void _showSnackBar(String message, Color color) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: color),
+    );
   }
 
   Future<void> _showEditProfileDialog(BuildContext context) async {
-    final controllers = <TextEditingController>[];
-
-    try {
-      final result = await showDialog<bool>(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => _EditProfileDialog(),
-      );
-
-      if (result == true) {
-        _loadUser(); // Refresh user data after successful update
-      }
-    } finally {
-      // Controllers sẽ được dispose trong dialog
-    }
+    final result = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => _EditProfileDialog(
+        username: _user['username'],
+        email: _user['email'],
+        onSave: (username, email) {
+          setState(() {
+            _user['username'] = username;
+            _user['email'] = email;
+          });
+          _showSnackBar('Profile updated (front-end only)', Colors.green);
+        },
+      ),
+    );
   }
 
   Future<void> _handleDeleteAccount() async {
@@ -150,34 +100,8 @@ class _ProfilePageState extends State<ProfilePage> {
       'Are you sure you want to delete your account? This will remove all your tasks too.',
       'Delete',
     );
-
-    if (confirm != true || !mounted) return;
-
-    try {
-      final result = await AuthService().deleteAccount();
-
-      if (!mounted) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(result['message'] ??
-              (result['success'] == true ? 'Account deleted' : 'Delete failed')),
-          backgroundColor: result['success'] == true ? Colors.green : Colors.red,
-        ),
-      );
-
-      if (result['success'] == true && mounted) {
-        Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error deleting account: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+    if (confirm == true) {
+      _showSnackBar('Account deleted (front-end only)', Colors.red);
     }
   }
 
@@ -188,24 +112,8 @@ class _ProfilePageState extends State<ProfilePage> {
       'Are you sure you want to logout?',
       'Logout',
     );
-
-    if (confirm != true || !mounted) return;
-
-    try {
-      await AuthService().logout();
-      if (mounted) {
-        Provider.of<UserProvider>(context, listen: false).clearUser();
-        Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error during logout: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+    if (confirm == true) {
+      _showSnackBar('Logged out (front-end only)', Colors.blue);
     }
   }
 
@@ -244,24 +152,18 @@ class _ProfilePageState extends State<ProfilePage> {
       return Center(child: CircularProgressIndicator());
     }
 
-    return Consumer<UserProvider>(
-      builder: (context, userProvider, child) {
-        final user = userProvider.user;
-
-        return SingleChildScrollView(
-          padding: EdgeInsets.all(16),
-          child: Column(
-            children: [
-              SizedBox(height: 30),
-              _buildUserAvatar(),
-              SizedBox(height: 20),
-              _buildUserInfo(userProvider),
-              SizedBox(height: 30),
-              _buildMenuCard(context),
-            ],
-          ),
-        );
-      },
+    return SingleChildScrollView(
+      padding: EdgeInsets.all(16),
+      child: Column(
+        children: [
+          SizedBox(height: 30),
+          _buildUserAvatar(),
+          SizedBox(height: 20),
+          _buildUserInfo(),
+          SizedBox(height: 30),
+          _buildMenuCard(context),
+        ],
+      ),
     );
   }
 
@@ -277,17 +179,16 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget _buildUserInfo(UserProvider userProvider) {
-    final user = userProvider.user;
+  Widget _buildUserInfo() {
     return Column(
       children: [
         Text(
-          user != null ? user['username'] ?? 'Unknown User' : 'Unknown User',
+          _user['username'] ?? 'Unknown User',
           style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
         ),
         SizedBox(height: 8),
         Text(
-          user != null ? user['email'] ?? 'No email' : 'No email',
+          _user['email'] ?? 'No email',
           style: TextStyle(fontSize: 16, color: Colors.grey[600]),
         ),
       ],
@@ -311,16 +212,12 @@ class _ProfilePageState extends State<ProfilePage> {
           ProfileMenuItem(
             icon: Icons.settings,
             text: "Settings",
-            onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Settings chưa được triển khai')),
-            ),
+            onTap: () => _showSnackBar('Settings not implemented', Colors.orange),
           ),
           ProfileMenuItem(
             icon: Icons.help,
             text: "Help & Support",
-            onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Help & Support chưa được triển khai')),
-            ),
+            onTap: () => _showSnackBar('Help & Support not implemented', Colors.orange),
           ),
           ProfileMenuItem(
             icon: Icons.delete,
@@ -341,8 +238,17 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 }
 
-// Tách EditProfileDialog thành widget riêng để dễ quản lý
 class _EditProfileDialog extends StatefulWidget {
+  final String username;
+  final String email;
+  final Function(String, String) onSave;
+
+  const _EditProfileDialog({
+    required this.username,
+    required this.email,
+    required this.onSave,
+  });
+
   @override
   _EditProfileDialogState createState() => _EditProfileDialogState();
 }
@@ -350,126 +256,52 @@ class _EditProfileDialog extends StatefulWidget {
 class _EditProfileDialogState extends State<_EditProfileDialog> {
   late final TextEditingController _usernameController;
   late final TextEditingController _emailController;
-  late final TextEditingController _currentPasswordController;
-  late final TextEditingController _newPasswordController;
-  late final TextEditingController _confirmController;
-
-  bool _showCurrentPassword = false;
-  bool _showNewPassword = false;
-  bool _showConfirmPassword = false;
   String? _formError;
   bool _isUpdating = false;
 
   @override
   void initState() {
     super.initState();
-    final userProvider = Provider.of<UserProvider>(context, listen: false);
-    _usernameController = TextEditingController(text: userProvider.username ?? '');
-    _emailController = TextEditingController(text: userProvider.email ?? '');
-    _currentPasswordController = TextEditingController();
-    _newPasswordController = TextEditingController();
-    _confirmController = TextEditingController();
+    _usernameController = TextEditingController(text: widget.username);
+    _emailController = TextEditingController(text: widget.email);
   }
 
   @override
   void dispose() {
     _usernameController.dispose();
     _emailController.dispose();
-    _currentPasswordController.dispose();
-    _newPasswordController.dispose();
-    _confirmController.dispose();
     super.dispose();
   }
 
-  Future<void> _handleUpdate() async {
-    if (_isUpdating) return;
-
+  void _handleUpdate() {
     setState(() {
       _formError = null;
       _isUpdating = true;
     });
 
-    try {
-      final username = _usernameController.text.trim();
-      final email = _emailController.text.trim();
-      final currentPassword = _currentPasswordController.text.trim();
-      final newPassword = _newPasswordController.text.trim();
-      final confirm = _confirmController.text.trim();
+    final username = _usernameController.text.trim();
+    final email = _emailController.text.trim();
 
-      final validationError = _validateForm(username, email, currentPassword, newPassword, confirm);
-      if (validationError != null) {
-        setState(() => _formError = validationError);
-        return;
-      }
-
-      if (!mounted) return;
-
-      final result = await AuthService().updateAccount(
-        username: username.isNotEmpty ? username : null,
-        email: email.isNotEmpty ? email : null,
-        currentPassword: currentPassword.isNotEmpty ? currentPassword : null,
-        newPassword: newPassword.isNotEmpty ? newPassword : null,
-      );
-
-      if (!mounted) return;
-
-      if (result['success'] == true) {
-        final me = await AuthService().getUserInfo();
-        if (me['success'] == true && me['user'] != null) {
-          Provider.of<UserProvider>(context, listen: false).setUser(me['user']);
-        }
-
-        if (mounted) {
-          ScaffoldMessenger.of(context)
-            ..removeCurrentSnackBar()
-            ..showSnackBar(SnackBar(
-              content: Text(result['message'] ?? "Update successful"),
-              backgroundColor: Colors.green,
-            ));
-          Navigator.pop(context, true);
-        }
-      } else {
-        setState(() => _formError = result['message'] ?? "Update failed");
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() => _formError = 'Network error: ${e.toString()}');
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isUpdating = false);
-      }
-    }
-  }
-
-
-
-
-  String? _validateForm(String username, String email, String currentPassword, String newPassword, String confirm) {
-    // Check if any field has content
-    if (username.isEmpty && email.isEmpty && newPassword.isEmpty) {
-      return "No data to update";
-    }
-
-    // Validate individual fields
     final usernameError = ProfileValidation.validateUsername(username);
-    if (usernameError != null) return usernameError;
+    if (usernameError != null) {
+      setState(() {
+        _formError = usernameError;
+        _isUpdating = false;
+      });
+      return;
+    }
 
     final emailError = ProfileValidation.validateEmail(email);
-    if (emailError != null) return emailError;
-
-    final passwordError = ProfileValidation.validatePassword(newPassword);
-    if (passwordError != null) return passwordError;
-
-    final passwordMatchError = ProfileValidation.validatePasswordMatch(newPassword, confirm);
-    if (passwordMatchError != null) return passwordMatchError;
-
-    // Check if current password is provided when needed
-    if ((username.isNotEmpty || email.isNotEmpty || newPassword.isNotEmpty) && currentPassword.isEmpty) {
-      return "Please enter current password to update account";
+    if (emailError != null) {
+      setState(() {
+        _formError = emailError;
+        _isUpdating = false;
+      });
+      return;
     }
 
-    return null;
+    widget.onSave(username, email);
+    Navigator.pop(context, true);
   }
 
   @override
@@ -480,41 +312,25 @@ class _EditProfileDialogState extends State<_EditProfileDialog> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _buildTextField(
+            TextField(
               controller: _usernameController,
-              label: "Username",
-              hint: "Enter new username (optional)",
+              decoration: InputDecoration(
+                labelText: "Username",
+                hintText: "Enter new username (optional)",
+                border: OutlineInputBorder(),
+                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              ),
             ),
             SizedBox(height: 12),
-            _buildTextField(
+            TextField(
               controller: _emailController,
-              label: "Email",
-              hint: "Enter new email (optional)",
               keyboardType: TextInputType.emailAddress,
-            ),
-            SizedBox(height: 12),
-            _buildPasswordField(
-              controller: _currentPasswordController,
-              label: "Current Password",
-              hint: "Enter current password if changing anything",
-              isVisible: _showCurrentPassword,
-              onVisibilityToggle: () => setState(() => _showCurrentPassword = !_showCurrentPassword),
-            ),
-            SizedBox(height: 12),
-            _buildPasswordField(
-              controller: _newPasswordController,
-              label: "New Password",
-              hint: "At least 6 chars, include uppercase, lowercase, number",
-              isVisible: _showNewPassword,
-              onVisibilityToggle: () => setState(() => _showNewPassword = !_showNewPassword),
-            ),
-            SizedBox(height: 12),
-            _buildPasswordField(
-              controller: _confirmController,
-              label: "Confirm Password",
-              hint: "Confirm new password",
-              isVisible: _showConfirmPassword,
-              onVisibilityToggle: () => setState(() => _showConfirmPassword = !_showConfirmPassword),
+              decoration: InputDecoration(
+                labelText: "Email",
+                hintText: "Enter new email (optional)",
+                border: OutlineInputBorder(),
+                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              ),
             ),
             if (_formError != null) ...[
               SizedBox(height: 12),
@@ -550,49 +366,6 @@ class _EditProfileDialogState extends State<_EditProfileDialog> {
               : Text("Save"),
         ),
       ],
-    );
-  }
-
-  Widget _buildTextField({
-    required TextEditingController controller,
-    required String label,
-    required String hint,
-    TextInputType? keyboardType,
-  }) {
-    return TextField(
-      controller: controller,
-      keyboardType: keyboardType,
-      textInputAction: TextInputAction.next,
-      decoration: InputDecoration(
-        labelText: label,
-        hintText: hint,
-        border: OutlineInputBorder(),
-        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      ),
-    );
-  }
-
-  Widget _buildPasswordField({
-    required TextEditingController controller,
-    required String label,
-    required String hint,
-    required bool isVisible,
-    required VoidCallback onVisibilityToggle,
-  }) {
-    return TextField(
-      controller: controller,
-      obscureText: !isVisible,
-      textInputAction: TextInputAction.next,
-      decoration: InputDecoration(
-        labelText: label,
-        hintText: hint,
-        border: OutlineInputBorder(),
-        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        suffixIcon: IconButton(
-          icon: Icon(isVisible ? Icons.visibility : Icons.visibility_off),
-          onPressed: onVisibilityToggle,
-        ),
-      ),
     );
   }
 }

@@ -1,71 +1,73 @@
-import 'dart:convert';
-import 'api_service.dart';
+import 'package:hive/hive.dart';
+import '../model/task.dart';
 
 class TaskService {
-  final ApiService _api = ApiService();
+  static const String _boxName = 'tasksBox';
 
-  Future<Map<String, dynamic>?> createTask(Map<String, dynamic> task) async {
-    final response = await _api.post(
-      "/api/task/",
-      body: task,
-      requireAuth: true,
+  // Mở box
+  Future<Box<Task>> _openBox() async {
+    return await Hive.openBox<Task>(_boxName);
+  }
+
+  // CREATE
+  Future<void> addTask(Task task) async {
+    var box = await _openBox();
+    await box.put(task.taskId, task); // dùng taskId làm key
+  }
+
+  // READ ALL
+  Future<List<Task>> getAllTasks() async {
+    var box = await _openBox();
+    return box.values.toList();
+  }
+
+  // READ BY ID
+  Future<Task?> getTask(int taskId) async {
+    var box = await _openBox();
+    return box.get(taskId);
+  }
+
+  // UPDATE
+  Future<void> updateTask(Task task) async {
+    var box = await _openBox();
+
+    // tìm Task có cùng taskId (UUID)
+    final existingTask = box.values.firstWhere(
+          (t) => t.taskId == task.taskId,
+      orElse: () => throw Exception("Task with id ${task.taskId} not found"),
     );
 
-    if (response.statusCode == 200 || response.statusCode == 201) {
-      return jsonDecode(response.body);
-    } else {
-      print('Create task failed: ${response.body}');
-      return null;
-    }
+    // cập nhật giá trị
+    existingTask.title = task.title;
+    existingTask.category = task.category;
+    existingTask.taskDatetime = task.taskDatetime;
+    existingTask.completed = task.completed;
+    existingTask.note = task.note;
+    existingTask.userId = task.userId;
+
+    await existingTask.save(); // save lại object trong Hive
   }
 
-  Future<List<Map<String, dynamic>>> getTasks() async {
+
+  // DELETE
+  Future<void> deleteTask(String taskId) async {
+    var box = await _openBox();
+
     try {
-      // Gọi API sử dụng cơ chế auto-refresh token
-      final response = await _api.get("/api/task", requireAuth: true);
+      final taskToDelete = box.values.firstWhere(
+            (task) => task.taskId == taskId,
+        orElse: () => throw Exception('Task not found'),
+      );
 
-      if (response.statusCode == 200) {
-        final List data = jsonDecode(response.body);
-        return List<Map<String, dynamic>>.from(data);
-      } else {
-        print('Get tasks failed: ${response.statusCode} - ${response.body}');
-        return [];
-      }
+      await taskToDelete.delete();
     } catch (e) {
-      print('Get tasks error: $e');
-      return [];
+      throw Exception("Lỗi khi xóa task: $e");
     }
   }
 
-
-  Future<Map<String, dynamic>?> updateTask(String taskId, Map<String, dynamic> task) async {
-    final response = await _api.put(
-      "/api/task/$taskId",
-      body: task,
-      requireAuth: true,
-    );
-
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body);
-    } else {
-      print('Update task failed: ${response.body}');
-      return null;
-    }
-  }
-
-  Future<bool> deleteTask(String taskId) async {
-    try {
-      final response = await _api.delete("/api/task/$taskId", requireAuth: true);
-
-      if (response.statusCode == 200) {
-        return true;
-      } else {
-        print('Xóa task thất bại: ${response.body}');
-        return false;
-      }
-    } catch (e) {
-      print('Lỗi khi gọi API deleteTask: $e');
-      return false;
-    }
+  // DELETE ALL
+  Future<void> deleteAllTasks() async {
+    var box = await _openBox();
+    await box.clear();
   }
 }

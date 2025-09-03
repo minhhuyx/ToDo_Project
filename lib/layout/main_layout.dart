@@ -1,10 +1,21 @@
 import 'package:flutter/material.dart';
-
+import 'package:ungdung_ghichu/page/debug_hive.dart';
 import '../page/add_page.dart';
 import '../page/home_page.dart';
 import '../page/list_page.dart';
 import '../page/profile_page.dart';
 import '../page/statistics_page.dart';
+import '../widget/custom_color.dart';
+
+// Import thêm các trang giả cho ví dụ
+class DebugPage extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Text('Debug Page'),
+    );
+  }
+}
 
 class MainLayout extends StatefulWidget {
   @override
@@ -20,14 +31,7 @@ class _MainLayoutState extends State<MainLayout> {
     'Add New Item',
     'Statistics',
     'Profile',
-  ];
-
-  final List<Color> _appBarColors = [
-    Colors.blue,
-    Colors.green,
-    Colors.orange,
-    Colors.purple,
-    Colors.teal,
+    'Debug'
   ];
 
   final List<Widget> _pages = [
@@ -36,6 +40,7 @@ class _MainLayoutState extends State<MainLayout> {
     AddPage(),
     StatisticsPage(),
     ProfilePage(),
+    TaskPage(), // Thêm trang Debug để khớp với BottomNavigationBar
   ];
 
   @override
@@ -47,24 +52,24 @@ class _MainLayoutState extends State<MainLayout> {
         child: AppBar(
           automaticallyImplyLeading: false,
           centerTitle: true,
-          elevation: 4,
-          backgroundColor: Colors.transparent, // Để gradient nổi bật
+          elevation: 0,
+          backgroundColor: Colors.transparent,
           flexibleSpace: Container(
             decoration: BoxDecoration(
-              gradient: LinearGradient(
+              gradient: const LinearGradient(
                 colors: [
-                  _appBarColors[_currentIndex],
-                  _appBarColors[_currentIndex].withOpacity(0.85),
+                  Color(0xFF18A5A7),
+                  Color(0xFFBFFFC7),
                 ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
-              borderRadius: BorderRadius.vertical(
+              borderRadius: const BorderRadius.vertical(
                 bottom: Radius.circular(25),
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.2),
+                  color: Colors.black26,
                   offset: Offset(0, 4),
                   blurRadius: 6,
                 ),
@@ -73,7 +78,7 @@ class _MainLayoutState extends State<MainLayout> {
           ),
           title: Text(
             _titles[_currentIndex],
-            style: TextStyle(
+            style: const TextStyle(
               fontWeight: FontWeight.w700,
               fontSize: 22,
               color: Colors.white,
@@ -88,24 +93,24 @@ class _MainLayoutState extends State<MainLayout> {
           ),
         ),
       ),
+
       body: IndexedStack(index: _currentIndex, children: _pages),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.1),
               blurRadius: 20,
-              offset: Offset(0, -5),
+              offset: const Offset(0, -5),
             ),
           ],
-          borderRadius: BorderRadius.only(
+          borderRadius: const BorderRadius.only(
             topLeft: Radius.circular(20),
             topRight: Radius.circular(20),
           ),
         ),
         child: ClipRRect(
-          borderRadius: BorderRadius.only(
+          borderRadius: const BorderRadius.only(
             topLeft: Radius.circular(20),
             topRight: Radius.circular(20),
           ),
@@ -117,9 +122,9 @@ class _MainLayoutState extends State<MainLayout> {
                 _currentIndex = index;
               });
             },
-            selectedItemColor: Colors.blue,
+            selectedItemColor: AppColors.primary,
             unselectedItemColor: Colors.grey.shade400,
-            backgroundColor: Colors.transparent,
+            backgroundColor: Colors.white,
             elevation: 0,
             selectedFontSize: 12,
             unselectedFontSize: 10,
@@ -150,10 +155,18 @@ class _MainLayoutState extends State<MainLayout> {
                 activeIcon: Icon(Icons.person),
                 label: 'Profile',
               ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.bug_report),
+                activeIcon: Icon(Icons.bug_report),
+                label: 'Debug',
+              ),
             ],
           ),
         ),
       ),
     );
   }
+
+
+
 }
