@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:ungdung_ghichu/page/debug_hive.dart';
 import '../page/add_page.dart';
 import '../page/home_page.dart';
 import '../page/list_page.dart';
@@ -40,7 +39,6 @@ class _MainLayoutState extends State<MainLayout> {
     AddPage(),
     StatisticsPage(),
     ProfilePage(),
-    TaskPage(), // Thêm trang Debug để khớp với BottomNavigationBar
   ];
 
   @override
@@ -154,11 +152,6 @@ class _MainLayoutState extends State<MainLayout> {
                 icon: Icon(Icons.person_outline),
                 activeIcon: Icon(Icons.person),
                 label: 'Profile',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.bug_report),
-                activeIcon: Icon(Icons.bug_report),
-                label: 'Debug',
               ),
             ],
           ),

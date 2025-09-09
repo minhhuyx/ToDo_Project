@@ -20,11 +20,22 @@ class TaskItemWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      title: Text(task.title),
+      title: Text(
+        task.title,
+        style: TextStyle(
+          fontWeight: FontWeight.bold,
+          fontSize: 14,
+          decoration:
+              task.completed ? TextDecoration.lineThrough : TextDecoration.none,
+          decorationColor: task.completed ? Colors.red : null, // màu gạch ngang
+          decorationThickness: 2, // độ dày (nếu muốn chỉnh)
+        ),
+      ),
       subtitle: Text(
         '${task.category} • ${task.taskDatetime.day}/${task.taskDatetime.month}/${task.taskDatetime.year} '
-            '${task.taskDatetime.hour}:${task.taskDatetime.minute.toString().padLeft(2, '0')}',
+        '${task.taskDatetime.hour}:${task.taskDatetime.minute.toString().padLeft(2, '0')}',
       ),
+      tileColor: task.completed ? Colors.grey[300] : Colors.white, // màu nền
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -50,66 +61,69 @@ class TaskItemWidget extends StatelessWidget {
       onTap: () {
         showDialog(
           context: context,
-          builder: (_) => AlertDialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            title: Text(task.title),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(FontAwesomeIcons.list, color: AppColors.primary,),
-                    const SizedBox(width: 10,),
-                    Expanded(child: Text("Danh mục: ${task.category}")),
-                  ],
+          builder:
+              (_) => AlertDialog(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
                 ),
-                const SizedBox(height: 15),
-                Row(
+                title: Text(task.title),
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(FontAwesomeIcons.clock, color: AppColors.primary,),
-                    const SizedBox(width: 10,),
-                    Text(
-                      "Ngày giờ: "
+                    Row(
+                      children: [
+                        Icon(FontAwesomeIcons.list, color: AppColors.primary),
+                        const SizedBox(width: 10),
+                        Expanded(child: Text("Danh mục: ${task.category}")),
+                      ],
+                    ),
+                    const SizedBox(height: 15),
+                    Row(
+                      children: [
+                        Icon(FontAwesomeIcons.clock, color: AppColors.primary),
+                        const SizedBox(width: 10),
+                        Text(
+                          "Ngày giờ: "
                           "${task.taskDatetime.day}/${task.taskDatetime.month}/${task.taskDatetime.year} "
                           "${task.taskDatetime.hour}:${task.taskDatetime.minute.toString().padLeft(2, '0')}",
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 15),
+                    Row(
+                      children: [
+                        Icon(FontAwesomeIcons.check, color: AppColors.primary),
+                        const SizedBox(width: 10),
+                        Text(
+                          "Trạng thái: ${task.completed ? "Hoàn thành" : "Chưa xong"}",
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 15),
+                    Row(
+                      children: [
+                        if (task.note != null && task.note!.isNotEmpty) ...[
+                          Icon(
+                            FontAwesomeIcons.noteSticky,
+                            color: AppColors.primary,
+                          ),
+                          const SizedBox(width: 10),
+                          Text("Ghi chú: ${task.note}"),
+                        ],
+                      ],
                     ),
                   ],
                 ),
-                const SizedBox(height: 15),
-                Row(
-                  children: [
-                    Icon(FontAwesomeIcons.check,color: AppColors.primary,),
-                    const SizedBox(width: 10,),
-                    Text("Trạng thái: ${task.completed ? "Hoàn thành" : "Chưa xong"}"),
-                  ],
-                ),
-                const SizedBox(height: 15),
-                Row(
-                  children: [
-
-                    if (task.note != null && task.note!.isNotEmpty) ...[
-                      Icon(FontAwesomeIcons.noteSticky, color: AppColors.primary,),
-                      const SizedBox(width: 10),
-                      Text("Ghi chú: ${task.note}"),
-                    ],
-                  ],
-                )
-
-              ],
-            ),
-            actions: [
-              TextButton(
-                child: const Text("Đóng"),
-                onPressed: () => Navigator.pop(context),
+                actions: [
+                  TextButton(
+                    child: const Text("Đóng"),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
               ),
-            ],
-          ),
         );
       },
-
     );
   }
 }

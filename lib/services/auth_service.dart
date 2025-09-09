@@ -1,10 +1,15 @@
 import 'dart:convert';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'api_service.dart';
+import 'dart:io';
+import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 
 
 
 class AuthService {
   final ApiService _apiService = ApiService();
+  final storage = const FlutterSecureStorage();
 
   // Singleton pattern
   static final AuthService _instance = AuthService._internal();
@@ -89,7 +94,14 @@ class AuthService {
 
       final body = jsonDecode(response.body);
       if (response.statusCode == 200) {
-        return {"success": true, "user": body};
+        final user = body;
+
+        // ✅ lưu userId vào secure storage
+        if (user["_id"] != null) {
+          await storage.write(key: "userId", value: user["_id"].toString());
+        }
+
+        return {"success": true, "user": user};
       } else {
         return {
           "success": false,
@@ -103,6 +115,134 @@ class AuthService {
       };
     }
   }
+
+
+
+  Future<Map<String, dynamic>> updateAccount({
+    String? username,
+    String? email,
+    String? currentPassword,
+    String? newPassword,
+    File? avatar, // thêm để upload avatar
+  }) async {
+    try {
+      final request = http.MultipartRequest(
+        "PUT",
+        Uri.parse("${ApiService.baseUrl}/api/auth/update_account"), // ✅ dùng class chứ không dùng instance
+      );
+
+      // Gắn access token
+      final accessToken = await _apiService.getAccessToken();
+      if (accessToken == null) {
+        return {"success": false, "message": "Bạn chưa đăng nhập"};
+      }
+      request.headers['Authorization'] = "Bearer $accessToken";
+
+      // Thêm field
+      if (username != null && username.isNotEmpty) {
+        request.fields['username'] = username;
+      }
+
+      if (email != null && email.isNotEmpty) {
+        if (currentPassword == null || currentPassword.isEmpty) {
+          return {
+            "success": false,
+            "message": "Cần nhập mật khẩu hiện tại để đổi email"
+          };
+        }
+        request.fields['email'] = email;
+        request.fields['current_password'] = currentPassword;
+      }
+
+      if (newPassword != null && newPassword.isNotEmpty) {
+        if (currentPassword == null || currentPassword.isEmpty) {
+          return {
+            "success": false,
+            "message": "Cần nhập mật khẩu hiện tại để đổi mật khẩu"
+          };
+        }
+        request.fields['new_password'] = newPassword;
+        request.fields['current_password'] = currentPassword;
+      }
+
+      if (avatar != null) {
+        final stream = http.ByteStream(avatar.openRead());
+        final length = await avatar.length();
+        final multipartFile = http.MultipartFile(
+          'avatar',
+          stream,
+          length,
+          filename: avatar.path.split('/').last,
+        );
+        request.files.add(multipartFile);
+      }
+
+      // Gửi request
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+      final bodyResp = jsonDecode(response.body);
+
+      if (response.statusCode == 200 && bodyResp['success'] == true) {
+        final newAccess = bodyResp['access_token'];
+        String? existingRefresh = await _apiService.getRefreshToken();
+
+        if (newAccess != null) {
+          await _apiService.saveTokens(
+            accessToken: newAccess,
+            refreshToken: existingRefresh ?? "",
+          );
+        }
+
+        return {
+          "success": true,
+          "message": bodyResp['message'],
+          "avatar_url": bodyResp['avatar_url'],
+          "access_token": newAccess,
+        };
+      } else {
+        return {
+          "success": false,
+          "message": bodyResp['detail'] ?? bodyResp['message'] ?? "Cập nhật thất bại"
+        };
+      }
+    } catch (e) {
+      return {"success": false, "message": "Lỗi kết nối server"};
+    }
+  }
+
+
+
+
+  /// Xóa tài khoản hiện tại
+  Future<Map<String, dynamic>> deleteAccount() async {
+    try {
+      final response = await _apiService.delete(
+        "/api/auth/delete_account",
+        requireAuth: true, // token tự động gửi
+      );
+
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        return {
+          "success": true,
+          "message": body["detail"] ?? "Account deleted",
+          "tasksDeleted": body["tasks_deleted"] ?? 0,
+          "userDeleted": body["user_deleted"] ?? 0,
+        };
+      } else {
+        final body = jsonDecode(response.body);
+        return {
+          "success": false,
+          "message": body["detail"] ?? "Delete failed",
+        };
+      }
+    } catch (e) {
+      print('Lỗi khi gọi API deleteAccount: $e');
+      return {"success": false, "message": "Error connecting to server"};
+    }
+  }
+
+
 
   // Logout
   Future<void> logout() async {
@@ -169,103 +309,4 @@ class AuthService {
       return false;
     }
   }
-
-  Future<Map<String, dynamic>> updateAccount({
-    String? username,
-    String? email,
-    String? currentPassword,
-    String? newPassword,
-  }) async {
-    final Map<String, dynamic> body = {};
-    if (username != null && username.isNotEmpty) body['username'] = username;
-    if (email != null && email.isNotEmpty) body['email'] = email;
-    if (newPassword != null && newPassword.isNotEmpty) {
-      if (currentPassword == null || currentPassword.isEmpty) {
-        return {
-          "success": false,
-          "message": "Cần nhập mật khẩu hiện tại để đổi mật khẩu"
-        };
-      }
-      body['current_password'] = currentPassword;
-      body['new_password'] = newPassword;
-    }
-
-    if (body.isEmpty) {
-      return {"success": false, "message": "Không có dữ liệu để cập nhật"};
-    }
-
-    try {
-      final response = await _apiService.put(
-        "/api/auth/update_account",
-        body: body,
-        requireAuth: true,
-      );
-
-      final bodyResp = jsonDecode(response.body);
-
-      if (response.statusCode == 200 && bodyResp['success'] == true) {
-        // Nếu server trả về access token mới thì lưu lại
-        final newAccess = bodyResp['access_token'];
-        String? existingRefresh = await _apiService.getRefreshToken();
-
-        if (newAccess != null) {
-          await _apiService.saveTokens(
-            accessToken: newAccess,
-            refreshToken: existingRefresh ?? "", // giữ refresh token cũ
-          );
-        }
-
-        return {
-          "success": true,
-          "message": bodyResp['message'],
-          "user": bodyResp['user'], // username/email
-          "access_token": newAccess, // token mới (nếu có)
-        };
-      } else {
-        return {
-          "success": false,
-          "message": bodyResp['message'] ?? "Cập nhật thất bại"
-        };
-      }
-    } catch (e) {
-      return {"success": false, "message": "Lỗi kết nối server"};
-    }
-  }
-
-
-
-
-
-  /// Xóa tài khoản hiện tại
-  Future<Map<String, dynamic>> deleteAccount() async {
-    try {
-      final response = await _apiService.delete(
-        "/api/auth/delete_account",
-        requireAuth: true, // token tự động gửi
-      );
-
-      if (response.statusCode == 200) {
-        final body = jsonDecode(response.body);
-        return {
-          "success": true,
-          "message": body["detail"] ?? "Account deleted",
-          "tasksDeleted": body["tasks_deleted"] ?? 0,
-          "userDeleted": body["user_deleted"] ?? 0,
-        };
-      } else {
-        final body = jsonDecode(response.body);
-        return {
-          "success": false,
-          "message": body["detail"] ?? "Delete failed",
-        };
-      }
-    } catch (e) {
-      print('Lỗi khi gọi API deleteAccount: $e');
-      return {"success": false, "message": "Error connecting to server"};
-    }
-  }
-
-
-
-
 }

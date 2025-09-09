@@ -1,4 +1,6 @@
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../model/task.dart';
@@ -7,6 +9,7 @@ import '../widget/TaskItemWidget.dart';
 import '../widget/custom_color.dart';
 import '../widget/dashbroard.dart';
 import '../widget/update_task_dialog.dart';
+import 'package:expandable/expandable.dart';
 
 class ListPage extends StatefulWidget {
   const ListPage({super.key});
@@ -19,6 +22,23 @@ class _ListPageState extends State<ListPage> {
   String _selectedStatus = "all";
   String? _selectedCategory;
   DateTime? _selectedDate;
+  late TaskProvider taskProvider;
+
+  @override
+  void initState() {
+    super.initState();
+    taskProvider = Provider.of<TaskProvider>(context, listen: false);
+
+    // 1️⃣ Load task offline
+    taskProvider.loadTasks();
+
+    // 2️⃣ Tự động sync khi có mạng
+    Connectivity().onConnectivityChanged.listen((status) {
+      if (status != ConnectivityResult.none) {
+        taskProvider.syncAllTasks();
+      }
+    });
+  }
 
 
 
@@ -208,10 +228,6 @@ class _ListPageState extends State<ListPage> {
 
   }
 
-
-
-
-
   void _showSnackBar(String message, Color color) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message), backgroundColor: AppColors.primary),
@@ -315,37 +331,30 @@ class _ListPageState extends State<ListPage> {
 
             // List tasks theo nhóm
             Expanded(
-              child: ListView(
+              child: filteredTasks.isNotEmpty
+                  ? ListView(
                 children: [
                   // Today
                   if (todayTasks.isNotEmpty)
                     Theme(
                       data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
                       child: ExpansionTile(
-                        title: Text("Today (${todayTasks.length})",style: TextStyle(color: AppColors.primary),),
-                        initiallyExpanded: true, // Mặc định mở Today
-                        children: todayTasks.map((task) => Column(
-                          children: [
-                            TaskItemWidget(
-                              task: task,
-                              onToggleComplete: () async {
-                                task.completed = !task.completed;
-                                await taskProvider.updateTask(task);
-                                _showSnackBar('Cập nhật trạng thái task', Colors.green);
-                              },
-                              onEdit: () {
-                                showDialog(
-                                  context: context,
-                                  builder: (_) => UpdateTaskDialog(task: task),
-                                );
-                              },
-                              onDelete: () async {
-                                await taskProvider.deleteTask(task.taskId);
-                                _showSnackBar('Task đã được xóa', Colors.red);
-                              },
-                            ),
-                            // Divider riêng cho từng task
-                          ],
+                        title: Text("Today (${todayTasks.length})", style: TextStyle(color: AppColors.primary)),
+                        initiallyExpanded: true,
+                        children: todayTasks.map((task) => TaskItemWidget(
+                          task: task,
+                          onToggleComplete: () async {
+                            task.completed = !task.completed;
+                            await taskProvider.updateTask(task);
+                            _showSnackBar('Cập nhật trạng thái task', Colors.green);
+                          },
+                          onEdit: () {
+                            showDialog(context: context, builder: (_) => UpdateTaskDialog(task: task));
+                          },
+                          onDelete: () async {
+                            await taskProvider.deleteTask(task.taskId);
+                            _showSnackBar('Task đã được xóa', Colors.red);
+                          },
                         )).toList(),
                       ),
                     ),
@@ -355,30 +364,22 @@ class _ListPageState extends State<ListPage> {
                     Theme(
                       data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
                       child: ExpansionTile(
-                        title: Text("Future (${futureTasks.length})",style: TextStyle(color: AppColors.primary),),
+                        title: Text("Future (${futureTasks.length})", style: TextStyle(color: AppColors.primary)),
                         initiallyExpanded: false,
-                        children: futureTasks.map((task) => Column(
-                          children: [
-                            TaskItemWidget(
-                              task: task,
-                              onToggleComplete: () async {
-                                task.completed = !task.completed;
-                                await taskProvider.updateTask(task);
-                                _showSnackBar('Cập nhật trạng thái task', Colors.green);
-                              },
-                              onEdit: () {
-                                showDialog(
-                                  context: context,
-                                  builder: (_) => UpdateTaskDialog(task: task),
-                                );
-                              },
-                              onDelete: () async {
-                                await taskProvider.deleteTask(task.taskId);
-                                _showSnackBar('Task đã được xóa', Colors.red);
-                              },
-                            ),
-
-                          ],
+                        children: futureTasks.map((task) => TaskItemWidget(
+                          task: task,
+                          onToggleComplete: () async {
+                            task.completed = !task.completed;
+                            await taskProvider.updateTask(task);
+                            _showSnackBar('Cập nhật trạng thái task', Colors.green);
+                          },
+                          onEdit: () {
+                            showDialog(context: context, builder: (_) => UpdateTaskDialog(task: task));
+                          },
+                          onDelete: () async {
+                            await taskProvider.deleteTask(task.taskId);
+                            _showSnackBar('Task đã được xóa', Colors.red);
+                          },
                         )).toList(),
                       ),
                     ),
@@ -388,36 +389,42 @@ class _ListPageState extends State<ListPage> {
                     Theme(
                       data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
                       child: ExpansionTile(
-                        title: Text("Previously (${previousTasks.length})",style: TextStyle(color: AppColors.primary),),
+                        title: Text("Previously (${previousTasks.length})", style: TextStyle(color: AppColors.primary)),
                         initiallyExpanded: false,
-                        children: previousTasks.map((task) => Column(
-                          children: [
-                            TaskItemWidget(
-                              task: task,
-                              onToggleComplete: () async {
-                                task.completed = !task.completed;
-                                await taskProvider.updateTask(task);
-                                _showSnackBar('Cập nhật trạng thái task', Colors.green);
-                              },
-                              onEdit: () {
-                                showDialog(
-                                  context: context,
-                                  builder: (_) => UpdateTaskDialog(task: task),
-                                );
-                              },
-                              onDelete: () async {
-                                await taskProvider.deleteTask(task.taskId);
-                                _showSnackBar('Task đã được xóa', Colors.red);
-                              },
-                            ),
-
-                          ],
+                        children: previousTasks.map((task) => TaskItemWidget(
+                          task: task,
+                          onToggleComplete: () async {
+                            task.completed = !task.completed;
+                            await taskProvider.updateTask(task);
+                            _showSnackBar('Cập nhật trạng thái task', Colors.green);
+                          },
+                          onEdit: () {
+                            showDialog(context: context, builder: (_) => UpdateTaskDialog(task: task));
+                          },
+                          onDelete: () async {
+                            await taskProvider.deleteTask(task.taskId);
+                            _showSnackBar('Task đã được xóa', Colors.red);
+                          },
                         )).toList(),
                       ),
                     ),
                 ],
+              )
+                  : Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(FontAwesomeIcons.list, size: 48, color: AppColors.primary),
+                    const SizedBox(height: 12),
+                    Text(
+                      "Không có task nào",
+                      style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+                    ),
+                  ],
+                ),
               ),
             )
+
 
 
           ],

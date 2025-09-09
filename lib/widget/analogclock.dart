@@ -72,7 +72,13 @@ class ClockPainter extends CustomPainter {
     final center = Offset(size.width / 2, size.height / 2);
     final radius = size.width / 2;
 
-    final fillBrush = Paint()..color = Colors.white;
+    final fillBrush =
+        Paint()
+          ..shader = const LinearGradient(
+            colors: [Color(0xFF18A5A7), Color(0xFFBFFFC7)],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ).createShader(Rect.fromCircle(center: center, radius: radius));
     final outlineBrush =
         Paint()
           ..color = Colors.black

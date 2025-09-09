@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../model/task.dart';
+import '../services/api_service.dart';
+import '../services/auth_service.dart';
 import '../services/task_service.dart';
 
 class TaskProvider with ChangeNotifier {
@@ -17,18 +19,21 @@ class TaskProvider with ChangeNotifier {
   int get pendingSyncTasks => _pendingSyncTasks.length;
 
   TaskProvider() {
-    _loadTasks();
+    loadTasks();
   }
 
   // Load all tasks from TaskService
-  Future<void> _loadTasks() async {
+  Future<void> loadTasks() async {
     _isLoading = true;
     notifyListeners();
+
     try {
-      _tasks = await _taskService.getAllTasks();
-      _pendingSyncTasks = _tasks.where((task) => task.note == 'pending_sync').toList();
+      final tasks = await _taskService.readTasks();
+
+      _tasks = tasks;
+      _pendingSyncTasks = tasks.where((t) => t.isSynced == false).toList();
     } catch (e) {
-      print('Lỗi khi tải tasks: $e');
+      print('❌ Lỗi khi load tasks: $e');
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -39,12 +44,10 @@ class TaskProvider with ChangeNotifier {
   Future<void> addTask(Task task) async {
     _isLoading = true;
     notifyListeners();
-    try {
-      await _taskService.addTask(task);
-      await _loadTasks();
-    } catch (e) {
-      print('Lỗi khi thêm task: $e');
-    }
+    await _taskService.addTask(task);
+    await loadTasks();
+    _isLoading = false;
+    notifyListeners();
   }
 
   // Update an existing task
@@ -60,14 +63,15 @@ class TaskProvider with ChangeNotifier {
         _tasks[index] = task;
       }
 
-      _isLoading = false;
-      notifyListeners();
+      print("✅ Task ${task.taskId} cập nhật xong (local + sync)");
     } catch (e) {
+      print("❌ Lỗi khi cập nhật task: $e");
+    } finally {
       _isLoading = false;
-      print("Lỗi khi cập nhật task: $e");
       notifyListeners();
     }
   }
+
   // Delete a task
   Future<void> deleteTask(String taskId) async {
     _isLoading = true;
@@ -87,7 +91,6 @@ class TaskProvider with ChangeNotifier {
     }
   }
 
-
   // Simulate syncing pending tasks with a server
   Future<void> syncPendingTasks() async {
     _isLoading = true;
@@ -97,14 +100,14 @@ class TaskProvider with ChangeNotifier {
         task.note = null;
         await _taskService.updateTask(task);
       }
-      await _loadTasks();
+      await loadTasks();
     } catch (e) {
       print('Lỗi khi đồng bộ tasks: $e');
     }
   }
-
   // Refresh task data
-  Future<void> refresh() async {
-    await _loadTasks();
+  Future<void> syncAllTasks() async {
+    await _taskService.syncAll();
+    await loadTasks(); // load lại danh sách
   }
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:provider/provider.dart';
 import 'package:ungdung_ghichu/widget/custom_color.dart';
 import '../model/task.dart';
@@ -128,6 +129,9 @@ class _AddPageState extends State<AddPage> {
 
     // Tạo task mới với UUID
     final uuid = Uuid();
+    final storage = const FlutterSecureStorage();
+    final userId = await storage.read(key: "userId"); // lấy userId từ secure storage
+
     final task = Task(
       taskId: uuid.v4(),
       title: title,
@@ -135,8 +139,19 @@ class _AddPageState extends State<AddPage> {
       taskDatetime: taskDateTime,
       completed: false,
       note: _notesController.text.trim(),
-      userId: 1, // Ví dụ userId = 1, thay bằng userId thực tế
+      isNew: true,
+      userId: userId ?? "", // fallback rỗng nếu không có
     );
+
+    print("Task debug: "
+        "id=${task.taskId}, "
+        "title=${task.title}, "
+        "category=${task.category}, "
+        "date=${task.taskDatetime}, "
+        "completed=${task.completed}, "
+        "note=${task.note}, "
+        "isNew=${task.isNew}, "
+        "userId=${task.userId}");
 
     try {
       final taskProvider = Provider.of<TaskProvider>(context, listen: false);

@@ -20,8 +20,8 @@ class _LoginPageState extends State<LoginPage> {
   void _login() async {
     setState(() => loading = true);
     bool success = await AuthService().login(
-      _usernameController.text,
-      _passwordController.text,
+      _usernameController.text.trim(),
+      _passwordController.text.trim(),
     );
     setState(() => loading = false);
 
@@ -48,7 +48,7 @@ class _LoginPageState extends State<LoginPage> {
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: Colors.black), // nút back
           onPressed: () {
-            Navigator.of(context).pop(); // quay lại màn hình trước
+            Navigator.pushReplacementNamed(context, '/welcome'); // quay lại màn hình trước
           },
         ),
       ),

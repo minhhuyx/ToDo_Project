@@ -23,7 +23,16 @@ class Task extends HiveObject {
   String? note;
 
   @HiveField(6)
-  int userId;
+  String userId;
+
+  @HiveField(7)
+  bool isSynced;
+
+  @HiveField(8)
+  bool isDeleted = false;
+
+  @HiveField(9)
+  bool isNew = false;
 
   Task({
     required this.taskId,
@@ -33,5 +42,8 @@ class Task extends HiveObject {
     this.completed = false,
     this.note,
     required this.userId,
+    this.isSynced = false,
+    this.isDeleted = false,
+    this.isNew = false,
   });
 }

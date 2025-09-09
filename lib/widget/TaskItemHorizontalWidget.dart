@@ -79,7 +79,8 @@ class TaskItemHorizontalWidget extends StatelessWidget {
         margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: task.completed
+              ? Colors.grey[300] : Colors.white ,
           borderRadius: BorderRadius.circular(14),
           boxShadow: [
             BoxShadow(
@@ -95,10 +96,19 @@ class TaskItemHorizontalWidget extends StatelessWidget {
             // Title
             Text(
               task.title,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+                decoration: task.completed
+                    ? TextDecoration.lineThrough
+                    : TextDecoration.none,
+                decorationColor: task.completed ? Colors.red : null, // màu gạch ngang
+                decorationThickness: 2, // độ dày (nếu muốn chỉnh)
+              ),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
+
             const SizedBox(height: 6),
             // Category
             Row(
