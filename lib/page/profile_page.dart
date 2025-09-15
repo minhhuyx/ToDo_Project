@@ -1,9 +1,12 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:ungdung_ghichu/page/setting_page.dart';
 import '../providers/user_provider.dart';
 import '../services/auth_service.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 // Constants
 class ProfileConstants {
@@ -15,8 +18,12 @@ class ProfileConstants {
 
 // Validation helper
 class ProfileValidation {
-  static final RegExp _emailRegex = RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
-  static final RegExp _passwordRegex = RegExp(r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{6,}$');
+  static final RegExp _emailRegex = RegExp(
+    r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
+  );
+  static final RegExp _passwordRegex = RegExp(
+    r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{6,}$',
+  );
   static final RegExp _usernameRegex = RegExp(r'^[a-zA-Z0-9_]+$');
 
   static String? validateEmail(String email) {
@@ -33,7 +40,8 @@ class ProfileValidation {
     if (username.length > ProfileConstants.maxUsernameLength) {
       return 'Tên người dùng không được quá ${ProfileConstants.maxUsernameLength} ký tự';
     }
-    if (!_usernameRegex.hasMatch(username)) return 'Tên người dùng chỉ được chứa chữ cái, số và dấu gạch dưới';
+    if (!_usernameRegex.hasMatch(username))
+      return 'Tên người dùng chỉ được chứa chữ cái, số và dấu gạch dưới';
     return null;
   }
 
@@ -131,17 +139,46 @@ class ProfilePage extends StatefulWidget {
 class _ProfilePageState extends State<ProfilePage> {
   final AuthService _authService = AuthService();
   bool _isUpdatingProfile = false;
-
+  String _version = "";
 
   @override
   void initState() {
     super.initState();
     Future.microtask(() => context.read<UserProvider>().fetchUserInfo());
+    _loadAppVersion();
+  }
+
+  Future<void> _openPrivacyPolicy() async {
+    final url = Uri.parse(
+      "https://www.termsfeed.com/live/c80aeecf-d3f8-41e4-8c0e-931623377e32",
+    );
+    try {
+      final launched = await launchUrl(
+        url,
+        mode: LaunchMode.externalApplication, // mở bằng Chrome
+      );
+      if (!launched) {
+        // fallback nếu Chrome không mở được → dùng in-app webview
+        await launchUrl(url, mode: LaunchMode.inAppWebView);
+      }
+    } catch (e) {
+      debugPrint("❌ Không mở được $url: $e");
+    }
+  }
+
+  Future<void> _loadAppVersion() async {
+    final info = await PackageInfo.fromPlatform();
+    setState(() {
+      _version = "${info.version}+${info.buildNumber}";
+    });
   }
 
   void _showSnackBar(String message, {bool isError = false}) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: isError ? Colors.red : Colors.green),
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? Colors.red : Colors.green,
+      ),
     );
   }
 
@@ -152,7 +189,11 @@ class _ProfilePageState extends State<ProfilePage> {
     final result = await showDialog<ProfileUpdateData>(
       context: context,
       barrierDismissible: false,
-      builder: (context) => EditProfileDialog(username: user['username'] ?? '', email: user['email'] ?? ''),
+      builder:
+          (context) => EditProfileDialog(
+            username: user['username'] ?? '',
+            email: user['email'] ?? '',
+          ),
     );
 
     if (result != null) {
@@ -161,9 +202,9 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<void> _handleProfileUpdate(
-      ProfileUpdateData updateData,
-      Map<String, dynamic> currentUser,
-      ) async {
+    ProfileUpdateData updateData,
+    Map<String, dynamic> currentUser,
+  ) async {
     setState(() => _isUpdatingProfile = true);
     try {
       // 1. Validation
@@ -190,18 +231,18 @@ class _ProfilePageState extends State<ProfilePage> {
 
       // 2. Gọi provider update
       final success = await context.read<UserProvider>().updateAccount(
-        username: updateData.username != (currentUser['username'] ?? '')
-            ? updateData.username
-            : null,
-        email: updateData.email != (currentUser['email'] ?? '')
-            ? updateData.email
-            : null,
-        currentPassword: validation.needsCurrentPassword
-            ? updateData.currentPassword
-            : null,
-        newPassword: updateData.newPassword.isNotEmpty
-            ? updateData.newPassword
-            : null,
+        username:
+            updateData.username != (currentUser['username'] ?? '')
+                ? updateData.username
+                : null,
+        email:
+            updateData.email != (currentUser['email'] ?? '')
+                ? updateData.email
+                : null,
+        currentPassword:
+            validation.needsCurrentPassword ? updateData.currentPassword : null,
+        newPassword:
+            updateData.newPassword.isNotEmpty ? updateData.newPassword : null,
         avatar: updateData.avatar, // ✅ gửi file ảnh lên API
       );
 
@@ -218,13 +259,11 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
-
-
-
   Future<void> _handleDeleteAccount() async {
     final confirm = await _showConfirmDialog(
       title: 'Xác nhận xóa',
-      content: 'Bạn có chắc chắn muốn xóa tài khoản? Điều này sẽ xóa tất cả dữ liệu của bạn.',
+      content:
+          'Bạn có chắc chắn muốn xóa tài khoản? Điều này sẽ xóa tất cả dữ liệu của bạn.',
       actionText: 'Xóa',
       isDestructive: true,
     );
@@ -234,7 +273,8 @@ class _ProfilePageState extends State<ProfilePage> {
         _showSnackBar('Xóa tài khoản thành công');
         Navigator.pushReplacementNamed(context, '/login');
       } else {
-        final error = context.read<UserProvider>().errorMessage ?? 'Xóa thất bại';
+        final error =
+            context.read<UserProvider>().errorMessage ?? 'Xóa thất bại';
         _showSnackBar(error, isError: true);
       }
     }
@@ -261,31 +301,37 @@ class _ProfilePageState extends State<ProfilePage> {
   }) {
     return showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(title),
-        content: Text(content),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Hủy')),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: isDestructive ? Colors.red : null,
-              foregroundColor: isDestructive ? Colors.white : null,
-            ),
-            child: Text(actionText),
+      builder:
+          (context) => AlertDialog(
+            title: Text(title),
+            content: Text(content),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Hủy'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context, true),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: isDestructive ? Colors.red : null,
+                  foregroundColor: isDestructive ? Colors.white : null,
+                ),
+                child: Text(actionText),
+              ),
+            ],
           ),
-        ],
-      ),
     );
   }
 
-  void _showFeatureNotImplemented(String feature) => _showSnackBar('Tính năng $feature chưa được triển khai');
+  void _showFeatureNotImplemented(String feature) =>
+      _showSnackBar('Tính năng $feature chưa được triển khai');
 
   @override
   Widget build(BuildContext context) {
     return Consumer<UserProvider>(
       builder: (context, userProvider, child) {
-        if (userProvider.isLoading) return const Center(child: CircularProgressIndicator());
+        if (userProvider.isLoading)
+          return const Center(child: CircularProgressIndicator());
         final user = userProvider.user;
 
         return SingleChildScrollView(
@@ -310,21 +356,40 @@ class _ProfilePageState extends State<ProfilePage> {
     return CircleAvatar(
       radius: ProfileConstants.avatarRadius,
       backgroundColor: Colors.teal,
-      backgroundImage: avatarUrl != null && avatarUrl.isNotEmpty
-          ? NetworkImage(avatarUrl)
-          : null,
-      child: avatarUrl == null || avatarUrl.isEmpty
-          ? Icon(Icons.person, size: ProfileConstants.avatarRadius, color: Colors.white)
-          : null,
+      backgroundImage:
+          avatarUrl != null && avatarUrl.isNotEmpty
+              ? NetworkImage(avatarUrl)
+              : null,
+      child:
+          avatarUrl == null || avatarUrl.isEmpty
+              ? Icon(
+                Icons.person,
+                size: ProfileConstants.avatarRadius,
+                color: Colors.white,
+              )
+              : null,
     );
   }
 
-
   Widget _buildUserInfo(Map<String, dynamic>? user) => Column(
     children: [
-      Text(user?['username'] ?? 'Người dùng không xác định', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
+      Text(
+        user?['username'] ?? 'Người dùng không xác định',
+        style: TextStyle(
+          fontSize: 20,
+          fontWeight: FontWeight.w600,
+          color: Theme.of(context).textTheme.bodyLarge?.color,
+        ),
+      ),
       const SizedBox(height: 8),
-      Text(user?['email'] ?? 'Không có email', style: TextStyle(fontSize: 16, color: Colors.grey[600])),
+      Text(
+        user?['email'] ?? 'Không có email',
+        style: TextStyle(
+          fontSize: 16,
+          color: Theme.of(context).textTheme.bodyMedium?.color,
+        ),
+      ),
+
     ],
   );
 
@@ -336,11 +401,53 @@ class _ProfilePageState extends State<ProfilePage> {
     ),
     child: Column(
       children: [
-        ProfileMenuItem(icon: Icons.edit, text: "Chỉnh sửa thông tin", onTap: () => _showEditProfileDialog(context)),
-        ProfileMenuItem(icon: Icons.settings, text: "Cài đặt", onTap: () => _showFeatureNotImplemented('cài đặt')),
-        ProfileMenuItem(icon: Icons.help, text: "Trợ giúp & Hỗ trợ", onTap: () => _showFeatureNotImplemented('trợ giúp')),
-        ProfileMenuItem(icon: Icons.delete, text: "Xóa tài khoản", onTap: _handleDeleteAccount),
-        ProfileMenuItem(icon: Icons.logout, text: "Đăng xuất", iconColor: Colors.red, textColor: Colors.red, showDivider: false, onTap: () => _handleLogout(context)),
+        ProfileMenuItem(
+          icon: Icons.edit,
+          text: "Chỉnh sửa thông tin",
+          onTap: () => _showEditProfileDialog(context),
+        ),
+        ProfileMenuItem(
+          icon: Icons.settings,
+          text: "Cài đặt",
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const SettingPage()),
+            );
+          },
+        ),
+        ProfileMenuItem(
+          icon: Icons.privacy_tip,
+          text: "Chính sách bảo mật",
+          onTap: _openPrivacyPolicy,
+        ),
+        ProfileMenuItem(
+          icon: Icons.delete,
+          text: "Xóa tài khoản",
+          onTap: _handleDeleteAccount,
+        ),
+        ProfileMenuItem(
+          icon: Icons.message,
+          text: "Phản hồi",
+          onTap: _handleDeleteAccount,
+        ),
+        ProfileMenuItem(
+          icon: Icons.logout,
+          text: "Đăng xuất",
+          iconColor: Colors.red,
+          textColor: Colors.red,
+          showDivider: false,
+          onTap: () => _handleLogout(context),
+        ),
+        ProfileMenuItem(
+          icon: Icons.info,
+          text: "Phiên bản",
+          trailing: Text(
+            _version.isNotEmpty ? _version : "Đang tải...",
+            style: const TextStyle(color: Colors.grey),
+          ),
+          showDivider: false,
+        ),
       ],
     ),
   );
@@ -352,7 +459,11 @@ class EditProfileDialog extends StatefulWidget {
   final String username;
   final String email;
 
-  const EditProfileDialog({Key? key, required this.username, required this.email}) : super(key: key);
+  const EditProfileDialog({
+    Key? key,
+    required this.username,
+    required this.email,
+  }) : super(key: key);
 
   @override
   _EditProfileDialogState createState() => _EditProfileDialogState();
@@ -392,16 +503,16 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
         child: Wrap(
           children: [
             ListTile(
-              leading: Icon(Icons.photo_camera),
-              title: Text("Chụp ảnh"),
+              leading: const Icon(Icons.photo_camera),
+              title: const Text("Chụp ảnh"),
               onTap: () {
                 _pickImage(ImageSource.camera);
                 Navigator.of(context).pop();
               },
             ),
             ListTile(
-              leading: Icon(Icons.photo_library),
-              title: Text("Chọn từ thư viện"),
+              leading: const Icon(Icons.photo_library),
+              title: const Text("Chọn từ thư viện"),
               onTap: () {
                 _pickImage(ImageSource.gallery);
                 Navigator.of(context).pop();
@@ -470,26 +581,63 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
     }
   }
 
+
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
-    return AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      title: const Text(
-        'Chỉnh sửa thông tin',
-        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-      ),
-      content: SizedBox(
-        width: screenWidth * 0.9, // ✅ Chiều rộng = 90% màn hình
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.all(16),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: isDark
+                ? [theme.colorScheme.surface, theme.colorScheme.surfaceVariant]
+                : [Colors.white, Colors.grey.shade100],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: isDark
+                  ? Colors.black.withOpacity(0.6)
+                  : Colors.black26,
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
         child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Title
+              Row(
+                children: [
+                  Icon(Icons.person,
+                      color: theme.colorScheme.primary, size: 28),
+                  const SizedBox(width: 8),
+                  Text(
+                    "Chỉnh sửa thông tin",
+                    style: theme.textTheme.titleLarge!.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: theme.colorScheme.onSurface,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+
               _buildTextField(
                 controller: _usernameController,
                 label: 'Tên người dùng',
                 errorText: _usernameError,
+                theme: theme,
               ),
               const SizedBox(height: 16),
               _buildTextField(
@@ -497,43 +645,92 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
                 label: 'Email',
                 keyboardType: TextInputType.emailAddress,
                 errorText: _emailError,
+                theme: theme,
               ),
               const SizedBox(height: 24),
+
               _buildPasswordField(
                 controller: _currentPasswordController,
                 label: 'Mật khẩu hiện tại',
                 isVisible: _isCurrentPasswordVisible,
-                onToggleVisibility: () => setState(() => _isCurrentPasswordVisible = !_isCurrentPasswordVisible),
+                onToggleVisibility: () =>
+                    setState(() => _isCurrentPasswordVisible = !_isCurrentPasswordVisible),
                 errorText: _currentPasswordError,
+                theme: theme,
               ),
               const SizedBox(height: 16),
               _buildPasswordField(
                 controller: _newPasswordController,
                 label: 'Mật khẩu mới',
                 isVisible: _isNewPasswordVisible,
-                onToggleVisibility: () => setState(() => _isNewPasswordVisible = !_isNewPasswordVisible),
+                onToggleVisibility: () =>
+                    setState(() => _isNewPasswordVisible = !_isNewPasswordVisible),
                 errorText: _newPasswordError,
+                theme: theme,
               ),
               const SizedBox(height: 16),
               _buildPasswordField(
                 controller: _confirmPasswordController,
                 label: 'Xác nhận mật khẩu mới',
                 isVisible: _isConfirmPasswordVisible,
-                onToggleVisibility: () => setState(() => _isConfirmPasswordVisible = !_isConfirmPasswordVisible),
+                onToggleVisibility: () =>
+                    setState(() => _isConfirmPasswordVisible = !_isConfirmPasswordVisible),
                 errorText: _confirmPasswordError,
+                theme: theme,
               ),
-              const SizedBox(height: 16),
-              Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+              const SizedBox(height: 24),
+
+              Center(
+                child: Column(
+                  children: [
+                    _imageFile != null
+                        ? ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Image.file(
+                        _imageFile!,
+                        height: 120,
+                        width: 120,
+                        fit: BoxFit.cover,
+                      ),
+                    )
+                        : CircleAvatar(
+                      radius: 48,
+                      backgroundColor: theme.colorScheme.primary.withOpacity(0.2),
+                      child: Icon(Icons.person,
+                          size: 48, color: theme.colorScheme.onSurface),
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton.icon(
+                      icon: const Icon(Icons.add_a_photo),
+                      label: const Text("Chụp / Tải ảnh"),
+                      onPressed: _showPickerOptions,
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 24),
+
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  _imageFile != null
-                      ? Image.file(_imageFile!, height: 200)
-                      : Text("Chưa chọn ảnh"),
-                  SizedBox(height: 16),
-                  ElevatedButton.icon(
-                    icon: Icon(Icons.add_a_photo),
-                    label: Text("Chụp / Tải ảnh"),
-                    onPressed: _showPickerOptions,
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text("Hủy"),
+                  ),
+                  const SizedBox(width: 8),
+                  ElevatedButton(
+                    onPressed: _handleSave,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    child: const Text("Lưu"),
                   ),
                 ],
               ),
@@ -541,23 +738,13 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
           ),
         ),
       ),
-      actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Hủy'),
-        ),
-        ElevatedButton(
-          onPressed: _handleSave,
-          child: const Text('Lưu'),
-        ),
-      ],
     );
   }
 
   Widget _buildTextField({
     required TextEditingController controller,
     required String label,
+    required ThemeData theme,
     TextInputType? keyboardType,
     String? errorText,
   }) {
@@ -566,10 +753,10 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
       keyboardType: keyboardType,
       decoration: InputDecoration(
         labelText: label,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         filled: true,
-        fillColor: Colors.grey[100],
+        fillColor: theme.colorScheme.surface,
         errorText: errorText,
       ),
     );
@@ -580,6 +767,7 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
     required String label,
     required bool isVisible,
     required VoidCallback onToggleVisibility,
+    required ThemeData theme,
     String? errorText,
   }) {
     return TextField(
@@ -587,40 +775,74 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
       obscureText: !isVisible,
       decoration: InputDecoration(
         labelText: label,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         filled: true,
-        fillColor: Colors.grey[100],
+        fillColor: theme.colorScheme.surface,
         errorText: errorText,
-        suffixIcon: IconButton(icon: Icon(isVisible ? Icons.visibility : Icons.visibility_off), onPressed: onToggleVisibility),
+        suffixIcon: IconButton(
+          icon: Icon(isVisible ? Icons.visibility : Icons.visibility_off),
+          onPressed: onToggleVisibility,
+        ),
       ),
     );
   }
+
 }
 
 class ProfileMenuItem extends StatelessWidget {
   final IconData icon;
   final String text;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
   final Color? iconColor;
   final Color? textColor;
   final bool showDivider;
+  final Widget? trailing; // thêm
 
-  const ProfileMenuItem({super.key, required this.icon, required this.text, required this.onTap, this.iconColor, this.textColor, this.showDivider = true});
+  const ProfileMenuItem({
+    super.key,
+    required this.icon,
+    required this.text,
+    this.onTap,
+    this.iconColor,
+    this.textColor,
+    this.showDivider = true,
+    this.trailing,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Column(
       children: [
         ListTile(
-          leading: Icon(icon, color: iconColor ?? Colors.black),
-          title: Text(text, style: TextStyle(color: textColor ?? Colors.black)),
-          trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-          tileColor: Colors.white,
+          leading: Icon(
+            icon,
+            color: iconColor ?? (isDark ? Colors.white : Colors.black),
+          ),
+          title: Text(
+            text,
+            style: TextStyle(
+              color: textColor ?? (isDark ? Colors.white : Colors.black),
+            ),
+          ),
+          trailing: trailing ??
+              (onTap != null
+                  ? Icon(Icons.arrow_forward_ios,
+                  size: 16, color: isDark ? Colors.white70 : Colors.black54)
+                  : null),
+          tileColor: isDark ? Colors.grey[900] : Colors.white,
           onTap: onTap,
         ),
-        if (showDivider) Divider(height: 1, color: Colors.grey[300]),
+        if (showDivider)
+          Divider(
+            height: 1,
+            color: isDark ? Colors.grey[800] : Colors.grey[300],
+          ),
       ],
     );
   }
 }
+

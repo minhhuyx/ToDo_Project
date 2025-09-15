@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import '../providers/task_provider.dart';
 import '../providers/user_provider.dart';
@@ -7,6 +8,9 @@ import '../providers/user_provider.dart';
 import '../widget/TaskItemHorizontalWidget.dart';
 import '../widget/analogclock.dart';
 import '../widget/custom_color.dart';
+import '../services/notification_service.dart';
+import 'package:android_intent_plus/android_intent.dart';
+
 
 class HomePage extends StatefulWidget {
   @override
@@ -14,12 +18,21 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+
+
   @override
   void initState() {
     super.initState();
     Future.microtask(
       () => Provider.of<UserProvider>(context, listen: false).fetchUserInfo(),
     );
+  }
+
+  Future<void> openExactAlarmSettings() async {
+    const intent = AndroidIntent(
+      action: 'android.settings.REQUEST_SCHEDULE_EXACT_ALARM',
+    );
+    await intent.launch();
   }
 
   @override
@@ -116,6 +129,10 @@ class _HomePageState extends State<HomePage> {
               },
             ),
           ),
+
+
+
+
 
           //   HorizontalTaskList(todayOnly: true),
         ],

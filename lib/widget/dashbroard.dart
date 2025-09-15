@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-
 import 'custom_color.dart';
 
 class TaskStatsCard extends StatelessWidget {
@@ -15,7 +14,9 @@ class TaskStatsCard extends StatelessWidget {
     required this.futureCount,
   });
 
-  Widget _buildStatItem(String label, int value, Color color) {
+  Widget _buildStatItem(BuildContext context, String label, int value, Color color) {
+    final theme = Theme.of(context);
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -33,7 +34,7 @@ class TaskStatsCard extends StatelessWidget {
           style: GoogleFonts.inter(
             fontSize: 12,
             fontWeight: FontWeight.w500,
-            color: Colors.grey[600],
+            color: theme.textTheme.bodySmall?.color?.withOpacity(0.7),
           ),
         ),
       ],
@@ -42,15 +43,18 @@ class TaskStatsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? Colors.black : Colors.white, // 🔥 đổi theo theme
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: AppColors.primary, // màu viền
-          width: 2,           // độ dày viền
+          color: AppColors.primary, // màu viền giữ nguyên
+          width: 2,
         ),
         boxShadow: [
           BoxShadow(
@@ -63,9 +67,9 @@ class TaskStatsCard extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _buildStatItem("Previously", previousCount, Colors.red),
-          _buildStatItem("Today", todayCount, Colors.blue),
-          _buildStatItem("Future", futureCount, Colors.green),
+          _buildStatItem(context, "Previously", previousCount, Colors.red),
+          _buildStatItem(context, "Today", todayCount, Colors.blue),
+          _buildStatItem(context, "Future", futureCount, Colors.green),
         ],
       ),
     );

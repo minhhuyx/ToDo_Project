@@ -185,7 +185,7 @@ class _AddPageState extends State<AddPage> {
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
-                color: Colors.grey[700],
+              color: Theme.of(context).textTheme.bodyLarge?.color,
               ),
             ),
           ),
@@ -195,19 +195,26 @@ class _AddPageState extends State<AddPage> {
               width: MediaQuery.of(context).size.width * 0.9,
               child: TextField(
                 controller: _titleController,
+                style: TextStyle(
+                  color: Theme.of(context).textTheme.bodyLarge?.color, // chữ theo theme
+                ),
                 decoration: InputDecoration(
                   hintText: 'Nhập tiêu đề task...',
+                  hintStyle: TextStyle(
+                    color: Theme.of(context).hintColor, // hint theo theme
+                  ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
                   filled: true,
-                  fillColor: Colors.white,
-                  contentPadding: EdgeInsets.symmetric(
+                  fillColor: Theme.of(context).scaffoldBackgroundColor, // nền theo theme
+                  contentPadding: const EdgeInsets.symmetric(
                     horizontal: 16,
                     vertical: 12,
                   ),
                 ),
-              ),
+              )
+
             ),
           ),
           SizedBox(height: 24),
@@ -221,7 +228,7 @@ class _AddPageState extends State<AddPage> {
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: Colors.grey[700],
+                  color: Theme.of(context).textTheme.bodyLarge?.color,
                   ),
                 ),
                 if (selectedCategory.isNotEmpty)
@@ -257,7 +264,7 @@ class _AddPageState extends State<AddPage> {
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
-                color: Colors.grey[700],
+              color: Theme.of(context).textTheme.bodyLarge?.color,
               ),
             ),
           ),
@@ -362,7 +369,7 @@ class _AddPageState extends State<AddPage> {
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
-                color: Colors.grey[700],
+              color: Theme.of(context).textTheme.bodyLarge?.color,
               ),
             ),
           ),
@@ -373,17 +380,23 @@ class _AddPageState extends State<AddPage> {
               child: TextField(
                 controller: _notesController,
                 maxLines: 5,
+                style: TextStyle(
+                  color: Theme.of(context).textTheme.bodyLarge?.color, // màu chữ tự theo theme
+                ),
                 decoration: InputDecoration(
                   hintText: 'Thêm ghi chú cho task...',
+                  hintStyle: TextStyle(
+                    color: Theme.of(context).hintColor, // màu hint tự theo theme
+                  ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
                   filled: true,
-                  fillColor: Colors.white,
-                  contentPadding: EdgeInsets.all(16),
+                  fillColor: Theme.of(context).scaffoldBackgroundColor, // nền theo theme
+                  contentPadding: const EdgeInsets.all(16),
                   alignLabelWithHint: true,
                 ),
-              ),
+              )
             ),
           ),
           SizedBox(height: 32),

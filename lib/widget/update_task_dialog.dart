@@ -85,13 +85,22 @@ class _UpdateTaskDialogState extends State<UpdateTaskDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Dialog(
       backgroundColor: Colors.transparent,
       insetPadding: const EdgeInsets.all(16),
       child: Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          gradient: LinearGradient(
+          gradient: isDark
+              ? LinearGradient(
+            colors: [theme.colorScheme.surface, theme.cardColor],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          )
+              : LinearGradient(
             colors: [Colors.white, Colors.grey.shade100],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
@@ -113,13 +122,13 @@ class _UpdateTaskDialogState extends State<UpdateTaskDialog> {
               // Title
               Row(
                 children: [
-                  const Icon(Icons.edit_note, color: Colors.blue, size: 28),
+                  Icon(Icons.edit_note, color: theme.colorScheme.primary, size: 28),
                   const SizedBox(width: 8),
                   Text(
                     "Cập nhật Task",
-                    style: Theme.of(context).textTheme.titleLarge!.copyWith(
+                    style: theme.textTheme.titleLarge!.copyWith(
                       fontWeight: FontWeight.bold,
-                      color: Colors.blueGrey[800],
+                      color: isDark ? Colors.white : Colors.blueGrey[800],
                     ),
                   ),
                 ],
@@ -129,10 +138,11 @@ class _UpdateTaskDialogState extends State<UpdateTaskDialog> {
               // Input Title
               TextField(
                 controller: _titleController,
+                style: TextStyle(color: isDark ? Colors.white : Colors.black),
                 decoration: InputDecoration(
                   labelText: "Tiêu đề",
                   filled: true,
-                  fillColor: Colors.white,
+                  fillColor: isDark ? theme.cardColor : Colors.white,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),
@@ -156,8 +166,9 @@ class _UpdateTaskDialogState extends State<UpdateTaskDialog> {
                     borderRadius: BorderRadius.circular(16),
                   ),
                   filled: true,
-                  fillColor: Colors.white,
+                  fillColor: isDark ? theme.cardColor : Colors.white,
                 ),
+                dropdownColor: isDark ? theme.cardColor : Colors.white,
               ),
               const SizedBox(height: 16),
 
@@ -223,13 +234,14 @@ class _UpdateTaskDialogState extends State<UpdateTaskDialog> {
               TextField(
                 controller: _notesController,
                 maxLines: 3,
+                style: TextStyle(color: isDark ? Colors.white : Colors.black),
                 decoration: InputDecoration(
                   labelText: "Ghi chú",
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),
                   filled: true,
-                  fillColor: Colors.white,
+                  fillColor: isDark ? theme.cardColor : Colors.white,
                 ),
               ),
               const SizedBox(height: 24),
@@ -251,8 +263,8 @@ class _UpdateTaskDialogState extends State<UpdateTaskDialog> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.green,
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 20, vertical: 12),
+                      padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
                       ),

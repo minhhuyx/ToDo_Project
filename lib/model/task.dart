@@ -34,6 +34,11 @@ class Task extends HiveObject {
   @HiveField(9)
   bool isNew = false;
 
+  @HiveField(10)
+  int? notificationId;
+
+
+
   Task({
     required this.taskId,
     required this.title,
@@ -45,5 +50,6 @@ class Task extends HiveObject {
     this.isSynced = false,
     this.isDeleted = false,
     this.isNew = false,
+    this.notificationId,
   });
 }

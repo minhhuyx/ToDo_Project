@@ -9,7 +9,6 @@ import '../widget/TaskItemWidget.dart';
 import '../widget/custom_color.dart';
 import '../widget/dashbroard.dart';
 import '../widget/update_task_dialog.dart';
-import 'package:expandable/expandable.dart';
 
 class ListPage extends StatefulWidget {
   const ListPage({super.key});
@@ -23,6 +22,97 @@ class _ListPageState extends State<ListPage> {
   String? _selectedCategory;
   DateTime? _selectedDate;
   late TaskProvider taskProvider;
+
+  Widget _buildTaskExpansionTile({
+    required String title,
+    required List<Task> tasks,
+    required bool initiallyExpanded,
+    required Color titleColor, // màu cố định
+  }) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Theme(
+      data: theme.copyWith(
+        dividerColor: Colors.transparent,
+        expansionTileTheme: ExpansionTileThemeData(
+          backgroundColor: isDark ? theme.cardColor : Colors.white, // 🔥
+          collapsedBackgroundColor: isDark ? theme.cardColor : Colors.white, // 🔥
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          collapsedShape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+        ),
+      ),
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 4),
+        decoration: BoxDecoration(
+          color: isDark ? theme.cardColor : Colors.white, // 🔥
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: theme.shadowColor.withOpacity(0.05),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: ExpansionTile(
+          key: ValueKey('${title}_${tasks.length}'),
+          title: Text(
+            title,
+            style: TextStyle(
+              color: titleColor, // 🔥 giữ màu cố định
+              fontWeight: FontWeight.w600,
+              fontSize: 16,
+            ),
+          ),
+          initiallyExpanded: initiallyExpanded,
+          childrenPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          children: tasks.map(
+                (task) => Container(
+              key: ValueKey(task.taskId),
+              margin: const EdgeInsets.only(bottom: 4),
+              child: TaskItemWidget(
+                task: task,
+                onToggleComplete: () async {
+                  setState(() => task.completed = !task.completed);
+                  try {
+                    await taskProvider.updateTask(task);
+                    if (mounted) {
+                      _showSnackBar('Cập nhật trạng thái task', Colors.green);
+                    }
+                  } catch (e) {
+                    if (mounted) setState(() => task.completed = !task.completed);
+                    if (mounted) _showSnackBar('Lỗi cập nhật task', Colors.red);
+                  }
+                },
+                onEdit: () {
+                  showDialog(
+                    context: context,
+                    builder: (_) => UpdateTaskDialog(task: task),
+                  );
+                },
+                onDelete: () async {
+                  try {
+                    await taskProvider.deleteTask(task.taskId);
+                    if (mounted) {
+                      _showSnackBar('Task đã được xóa', Colors.red);
+                    }
+                  } catch (e) {
+                    if (mounted) _showSnackBar('Lỗi xóa task', Colors.red);
+                  }
+                },
+              ),
+            ),
+          ).toList(),
+        ),
+      ),
+    );
+  }
+
+
+
 
   @override
   void initState() {
@@ -40,44 +130,47 @@ class _ListPageState extends State<ListPage> {
     });
   }
 
-
-
-
-
   Widget _buildFilterSheet() {
     // Biến tạm để lưu lựa chọn
     String tempStatus = _selectedStatus;
     String? tempCategory = _selectedCategory;
     DateTime? tempDate = _selectedDate;
 
+    final theme = Theme.of(context);
+
     return StatefulBuilder(
       builder: (context, setModalState) {
         return Container(
           padding: const EdgeInsets.all(16),
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+          decoration: BoxDecoration(
+            color: theme.cardColor, // ✅ theo theme (Light/Dark)
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Thanh kéo hiện đại
+              // Thanh kéo
               Container(
                 width: 40,
                 height: 4,
                 margin: const EdgeInsets.only(bottom: 12),
                 decoration: BoxDecoration(
-                  color: Colors.grey[300],
+                  color: theme.dividerColor.withOpacity(0.5),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
-              const Text("Bộ lọc Task",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+
+              Text(
+                "Bộ lọc Task",
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
               const SizedBox(height: 20),
 
               // Trạng thái
-              const Text("Trạng thái", style: TextStyle(fontWeight: FontWeight.w600)),
+              Text("Trạng thái", style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
               const SizedBox(height: 8),
               Wrap(
                 spacing: 8,
@@ -102,7 +195,7 @@ class _ListPageState extends State<ListPage> {
               const SizedBox(height: 20),
 
               // Category
-              const Text("Danh mục", style: TextStyle(fontWeight: FontWeight.w600)),
+              Text("Danh mục", style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
               const SizedBox(height: 8),
               Wrap(
                 spacing: 8,
@@ -132,7 +225,7 @@ class _ListPageState extends State<ListPage> {
               const SizedBox(height: 20),
 
               // Ngày
-              const Text("Ngày", style: TextStyle(fontWeight: FontWeight.w600)),
+              Text("Ngày", style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
               const SizedBox(height: 8),
               Wrap(
                 spacing: 8,
@@ -143,9 +236,11 @@ class _ListPageState extends State<ListPage> {
                     onSelected: (_) => setModalState(() => tempDate = null),
                   ),
                   ChoiceChip(
-                    label: Text(tempDate != null
-                        ? "${tempDate!.day}/${tempDate!.month}/${tempDate!.year}"
-                        : "Chọn ngày"),
+                    label: Text(
+                      tempDate != null
+                          ? "${tempDate!.day}/${tempDate!.month}/${tempDate!.year}"
+                          : "Chọn ngày",
+                    ),
                     selected: tempDate != null,
                     onSelected: (_) async {
                       final picked = await showDatePicker(
@@ -155,11 +250,10 @@ class _ListPageState extends State<ListPage> {
                         lastDate: DateTime(2100),
                       );
                       if (picked != null) {
-                        setModalState(() => tempDate = picked); // Cập nhật tempDate
+                        setModalState(() => tempDate = picked);
                       }
                     },
                   ),
-
                 ],
               ),
               const SizedBox(height: 24),
@@ -170,7 +264,6 @@ class _ListPageState extends State<ListPage> {
                   Expanded(
                     child: ElevatedButton(
                       onPressed: () {
-                        // Reset cả temp và selected
                         setState(() {
                           _selectedStatus = "all";
                           _selectedCategory = null;
@@ -178,11 +271,14 @@ class _ListPageState extends State<ListPage> {
                         });
                         Navigator.pop(context);
                       },
-                      child: const Text("Clear", style: TextStyle(color: Colors.red)),
+                      child: Text(
+                        "Clear",
+                        style: TextStyle(color: theme.colorScheme.error),
+                      ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
+                        backgroundColor: theme.scaffoldBackgroundColor,
                         elevation: 0,
-                        side: const BorderSide(color: Colors.red),
+                        side: BorderSide(color: theme.colorScheme.error),
                         shape: const RoundedRectangleBorder(
                           borderRadius: BorderRadius.only(
                             topLeft: Radius.circular(12),
@@ -199,7 +295,7 @@ class _ListPageState extends State<ListPage> {
                         setState(() {
                           _selectedStatus = tempStatus;
                           _selectedCategory = tempCategory;
-                          _selectedDate = tempDate; // Chỉ apply khi nhấn
+                          _selectedDate = tempDate;
                         });
                         Navigator.pop(context);
                       },
@@ -225,8 +321,8 @@ class _ListPageState extends State<ListPage> {
         );
       },
     );
-
   }
+
 
   void _showSnackBar(String message, Color color) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -234,31 +330,34 @@ class _ListPageState extends State<ListPage> {
     );
   }
 
-
-
   @override
   Widget build(BuildContext context) {
     return Consumer<TaskProvider>(
       builder: (context, taskProvider, child) {
         // 1️⃣ Lọc tasks theo trạng thái, category và ngày (nếu chọn)
-        var filteredTasks = taskProvider.tasks.where((task) {
-          // Lọc trạng thái
-          if (_selectedStatus == "completed" && !task.completed) return false;
-          if (_selectedStatus == "pending" && task.completed) return false;
+        var filteredTasks =
+            taskProvider.tasks.where((task) {
+              // Lọc trạng thái
+              if (_selectedStatus == "completed" && !task.completed)
+                return false;
+              if (_selectedStatus == "pending" && task.completed) return false;
 
-          // Lọc category
-          if (_selectedCategory != null && task.category != _selectedCategory) return false;
+              // Lọc category
+              if (_selectedCategory != null &&
+                  task.category != _selectedCategory)
+                return false;
 
-          // Lọc theo ngày
-          if (_selectedDate != null) {
-            final taskDate = task.taskDatetime;
-            if (taskDate.year != _selectedDate!.year ||
-                taskDate.month != _selectedDate!.month ||
-                taskDate.day != _selectedDate!.day) return false;
-          }
+              // Lọc theo ngày
+              if (_selectedDate != null) {
+                final taskDate = task.taskDatetime;
+                if (taskDate.year != _selectedDate!.year ||
+                    taskDate.month != _selectedDate!.month ||
+                    taskDate.day != _selectedDate!.day)
+                  return false;
+              }
 
-          return true;
-        }).toList();
+              return true;
+            }).toList();
 
         // 2️⃣ Gom nhóm
         final now = DateTime.now();
@@ -267,7 +366,11 @@ class _ListPageState extends State<ListPage> {
         List<Task> previousTasks = [];
 
         for (var task in filteredTasks) {
-          final taskDay = DateTime(task.taskDatetime.year, task.taskDatetime.month, task.taskDatetime.day);
+          final taskDay = DateTime(
+            task.taskDatetime.year,
+            task.taskDatetime.month,
+            task.taskDatetime.day,
+          );
           final today = DateTime(now.year, now.month, now.day);
 
           if (taskDay == today) {
@@ -305,15 +408,23 @@ class _ListPageState extends State<ListPage> {
                         showModalBottomSheet(
                           context: context,
                           shape: const RoundedRectangleBorder(
-                            borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                            borderRadius: BorderRadius.vertical(
+                              top: Radius.circular(16),
+                            ),
                           ),
                           builder: (_) => _buildFilterSheet(),
                         );
                       },
-                      icon: const Icon(Icons.filter_list, color: AppColors.primary),
+                      icon: const Icon(
+                        Icons.filter_list,
+                        color: AppColors.primary,
+                      ),
                       label: const Text(
                         "Bộ lọc",
-                        style: TextStyle(color:AppColors.primary, fontWeight: FontWeight.w600),
+                        style: TextStyle(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                       style: OutlinedButton.styleFrom(
                         side: const BorderSide(color: AppColors.primary),
@@ -328,109 +439,69 @@ class _ListPageState extends State<ListPage> {
             ),
             // Nút filter
 
-
             // List tasks theo nhóm
             Expanded(
-              child: filteredTasks.isNotEmpty
-                  ? ListView(
-                children: [
-                  // Today
-                  if (todayTasks.isNotEmpty)
-                    Theme(
-                      data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-                      child: ExpansionTile(
-                        title: Text("Today (${todayTasks.length})", style: TextStyle(color: AppColors.primary)),
-                        initiallyExpanded: true,
-                        children: todayTasks.map((task) => TaskItemWidget(
-                          task: task,
-                          onToggleComplete: () async {
-                            task.completed = !task.completed;
-                            await taskProvider.updateTask(task);
-                            _showSnackBar('Cập nhật trạng thái task', Colors.green);
-                          },
-                          onEdit: () {
-                            showDialog(context: context, builder: (_) => UpdateTaskDialog(task: task));
-                          },
-                          onDelete: () async {
-                            await taskProvider.deleteTask(task.taskId);
-                            _showSnackBar('Task đã được xóa', Colors.red);
-                          },
-                        )).toList(),
+              child:
+                  filteredTasks.isNotEmpty
+                      ? ListView(
+                        physics: const BouncingScrollPhysics(),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        children: [
+                          if (todayTasks.isNotEmpty)
+                            _buildTaskExpansionTile(
+                              title: "Today (${todayTasks.length})",
+                              tasks: todayTasks,
+                              initiallyExpanded: true,
+                              titleColor: AppColors.primary,
+                            ),
+                          if (futureTasks.isNotEmpty)
+                            _buildTaskExpansionTile(
+                              title: "Future (${futureTasks.length})",
+                              tasks: futureTasks,
+                              initiallyExpanded: false,
+                              titleColor:
+                                  Colors.blue,
+                            ),
+                          if (previousTasks.isNotEmpty)
+                            _buildTaskExpansionTile(
+                              title: "Previously (${previousTasks.length})",
+                              tasks: previousTasks,
+                              initiallyExpanded: false,
+                              titleColor:
+                                  Colors.red
+                            ),
+                        ],
+                      )
+                      : Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              FontAwesomeIcons.list,
+                              size: 48,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              "Không có task nào",
+                              style: TextStyle(
+                                fontSize: 16,
+                                color:
+                                    Theme.of(
+                                      context,
+                                    ).textTheme.bodyMedium?.color,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-
-                  // Future
-                  if (futureTasks.isNotEmpty)
-                    Theme(
-                      data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-                      child: ExpansionTile(
-                        title: Text("Future (${futureTasks.length})", style: TextStyle(color: AppColors.primary)),
-                        initiallyExpanded: false,
-                        children: futureTasks.map((task) => TaskItemWidget(
-                          task: task,
-                          onToggleComplete: () async {
-                            task.completed = !task.completed;
-                            await taskProvider.updateTask(task);
-                            _showSnackBar('Cập nhật trạng thái task', Colors.green);
-                          },
-                          onEdit: () {
-                            showDialog(context: context, builder: (_) => UpdateTaskDialog(task: task));
-                          },
-                          onDelete: () async {
-                            await taskProvider.deleteTask(task.taskId);
-                            _showSnackBar('Task đã được xóa', Colors.red);
-                          },
-                        )).toList(),
-                      ),
-                    ),
-
-                  // Previously
-                  if (previousTasks.isNotEmpty)
-                    Theme(
-                      data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-                      child: ExpansionTile(
-                        title: Text("Previously (${previousTasks.length})", style: TextStyle(color: AppColors.primary)),
-                        initiallyExpanded: false,
-                        children: previousTasks.map((task) => TaskItemWidget(
-                          task: task,
-                          onToggleComplete: () async {
-                            task.completed = !task.completed;
-                            await taskProvider.updateTask(task);
-                            _showSnackBar('Cập nhật trạng thái task', Colors.green);
-                          },
-                          onEdit: () {
-                            showDialog(context: context, builder: (_) => UpdateTaskDialog(task: task));
-                          },
-                          onDelete: () async {
-                            await taskProvider.deleteTask(task.taskId);
-                            _showSnackBar('Task đã được xóa', Colors.red);
-                          },
-                        )).toList(),
-                      ),
-                    ),
-                ],
-              )
-                  : Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(FontAwesomeIcons.list, size: 48, color: AppColors.primary),
-                    const SizedBox(height: 12),
-                    Text(
-                      "Không có task nào",
-                      style: TextStyle(fontSize: 16, color: Colors.grey[600]),
-                    ),
-                  ],
-                ),
-              ),
-            )
-
-
-
+            ),
           ],
         );
       },
     );
   }
-
 }

@@ -4,6 +4,7 @@ import '../page/home_page.dart';
 import '../page/list_page.dart';
 import '../page/profile_page.dart';
 import '../page/statistics_page.dart';
+import '../theme/app_theme.dart';
 import '../widget/custom_color.dart';
 
 // Import thêm các trang giả cho ví dụ
@@ -30,7 +31,6 @@ class _MainLayoutState extends State<MainLayout> {
     'Add New Item',
     'Statistics',
     'Profile',
-    'Debug'
   ];
 
   final List<Widget> _pages = [
@@ -44,7 +44,7 @@ class _MainLayoutState extends State<MainLayout> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: PreferredSize(
         preferredSize: Size.fromHeight(50),
         child: AppBar(
@@ -62,9 +62,7 @@ class _MainLayoutState extends State<MainLayout> {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
-              borderRadius: const BorderRadius.vertical(
-                bottom: Radius.circular(25),
-              ),
+              borderRadius: const BorderRadius.vertical(bottom: Radius.circular(25)),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black26,
@@ -120,9 +118,9 @@ class _MainLayoutState extends State<MainLayout> {
                 _currentIndex = index;
               });
             },
-            selectedItemColor: AppColors.primary,
-            unselectedItemColor: Colors.grey.shade400,
-            backgroundColor: Colors.white,
+            backgroundColor: Theme.of(context).bottomNavigationBarTheme.backgroundColor,
+            selectedItemColor: Theme.of(context).bottomNavigationBarTheme.selectedItemColor,
+            unselectedItemColor: Theme.of(context).bottomNavigationBarTheme.unselectedItemColor,
             elevation: 0,
             selectedFontSize: 12,
             unselectedFontSize: 10,
