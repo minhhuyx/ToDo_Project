@@ -30,13 +30,15 @@ class StatisticsPage extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.pie_chart_outline, size: 64, color: Colors.grey),
+                Icon(Icons.pie_chart_outline, size: 64,  color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.white
+                    : Colors.black,),
                 const SizedBox(height: 16),
                 Text(
                   'Chưa có dữ liệu thống kê',
                   style: GoogleFonts.inter(
                     fontSize: 16,
-                    color: Colors.grey[600],
+                    color: Theme.of( context, ).textTheme.bodyMedium?.color,
                   ),
                 ),
               ],

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hive/hive.dart';
 
 class WelcomePage extends StatelessWidget {
   const WelcomePage({Key? key}) : super(key: key);
@@ -31,19 +32,20 @@ class WelcomePage extends StatelessWidget {
                 width: double.infinity, // full width
                 height: 50,
                 child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.pushNamed(context, '/login');
+                  onPressed: () async {
+                    var settingsBox = await Hive.openBox('settingsBox');
+                    await settingsBox.put('hasSeenWelcome', true);
+
+                    Navigator.pushReplacementNamed(context, '/login');
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.black, // màu nền
                     foregroundColor: Colors.white, // màu chữ
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(
-                        5,
-                      ), // bán kính bo tròn
+                      borderRadius: BorderRadius.circular(5), // bo tròn
                     ),
                   ),
-                  child: Text("Login"),
+                  child: const Text("Login"),
                 ),
               ),
 
@@ -54,19 +56,20 @@ class WelcomePage extends StatelessWidget {
                 width: double.infinity,
                 height: 50,
                 child: OutlinedButton(
-                  onPressed: () {
-                    Navigator.pushNamed(context, '/register');
+                  onPressed: () async {
+                    var settingsBox = await Hive.openBox('settingsBox');
+                    await settingsBox.put('hasSeenWelcome', true);
+
+                    Navigator.pushReplacementNamed(context, '/register');
                   },
                   style: OutlinedButton.styleFrom(
-                    backgroundColor: Colors.white, // màu nền
+                    backgroundColor: Colors.white,
                     foregroundColor: Colors.black,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(
-                        5,
-                      ),
+                      borderRadius: BorderRadius.circular(5),
                     ),
                   ),
-                  child: Text("Register"),
+                  child: const Text("Register"),
                 ),
               ),
 

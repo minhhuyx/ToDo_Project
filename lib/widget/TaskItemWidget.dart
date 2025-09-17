@@ -63,7 +63,55 @@ class TaskItemWidget extends StatelessWidget {
           ),
           IconButton(
             icon: const Icon(Icons.delete, color: Colors.red),
-            onPressed: onDelete,
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (BuildContext context) {
+                  return AlertDialog(
+                    backgroundColor: Theme.of(context).colorScheme.background,
+                    title: Text(
+                      "Xác nhận",
+                      style: TextStyle(
+                        color: AppColors.primary,
+                      ),
+                    ),
+                    content: Text(
+                      "Bạn có chắc chắn muốn xóa không?",
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onBackground,
+                      ),
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () {
+                          Navigator.of(context).pop(); // đóng dialog
+                        },
+                        child: Text(
+                          "Hủy",
+                          style: TextStyle(
+                            color: AppColors.primary, // màu chủ đạo
+                          ),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          Navigator.of(context).pop(); // đóng dialog
+                          if (onDelete != null) {
+                            onDelete(); // gọi hàm xóa thật sự
+                          }
+                        },
+                        child: Text(
+                          "Xóa",
+                          style: TextStyle(
+                            color: Colors.red, // màu error (đỏ) theo theme
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              );
+            },
           ),
         ],
       ),

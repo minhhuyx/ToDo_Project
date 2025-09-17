@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:ungdung_ghichu/widget/custom_color.dart';
 import '../model/task.dart';
 import '../providers/task_provider.dart';
 
@@ -122,13 +123,13 @@ class _UpdateTaskDialogState extends State<UpdateTaskDialog> {
               // Title
               Row(
                 children: [
-                  Icon(Icons.edit_note, color: theme.colorScheme.primary, size: 28),
+                  Icon(Icons.edit_note, color: AppColors.primary, size: 28),
                   const SizedBox(width: 8),
                   Text(
                     "Cập nhật Task",
                     style: theme.textTheme.titleLarge!.copyWith(
                       fontWeight: FontWeight.bold,
-                      color: isDark ? Colors.white : Colors.blueGrey[800],
+                      color: AppColors.primary,
                     ),
                   ),
                 ],
@@ -261,7 +262,7 @@ class _UpdateTaskDialogState extends State<UpdateTaskDialog> {
                   ElevatedButton(
                     onPressed: _isLoading ? null : _updateTask,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
+                      backgroundColor: AppColors.primary,
                       foregroundColor: Colors.white,
                       padding:
                       const EdgeInsets.symmetric(horizontal: 20, vertical: 12),

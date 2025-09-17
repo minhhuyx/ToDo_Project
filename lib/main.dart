@@ -14,7 +14,7 @@ import 'page/welcome_screen.dart';
 import 'layout/main_layout.dart';
 import 'model/task.dart';
 import 'providers/task_provider.dart';
-
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 
 void main() async {
@@ -22,10 +22,22 @@ void main() async {
   await Hive.initFlutter();
   Hive.registerAdapter(TaskAdapter());
   await Hive.openBox<Task>('tasksBox');
-  runApp(MyApp());
+  await dotenv.load(fileName: ".env");
+  var settingsBox = await Hive.openBox('settingsBox');
+  bool hasSeenWelcome = settingsBox.get('hasSeenWelcome', defaultValue: false);
+  bool isLoggedIn = settingsBox.get('isLoggedIn', defaultValue: false);
+
+  runApp(MyApp(
+    hasSeenWelcome: hasSeenWelcome,
+    isLoggedIn: isLoggedIn,
+  ));
 }
 
 class MyApp extends StatelessWidget {
+  final bool hasSeenWelcome;
+  final bool isLoggedIn;
+  const MyApp({super.key, required this.hasSeenWelcome, required this.isLoggedIn});
+
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
@@ -38,10 +50,12 @@ class MyApp extends StatelessWidget {
         builder: (context, themeProvider, _) {
           return MaterialApp(
             debugShowCheckedModeBanner: false,
-            theme: AppTheme.lightTheme,   // light theme custom
-            darkTheme: AppTheme.darkTheme, // dark theme custom
-            themeMode: themeProvider.themeMode, // do provider quản lý
-            initialRoute: '/home',
+            theme: AppTheme.lightTheme,
+            darkTheme: AppTheme.darkTheme,
+            themeMode: themeProvider.themeMode,
+            initialRoute: !hasSeenWelcome
+                ? '/welcome'
+                : (isLoggedIn ? '/home' : '/login'),
             routes: {
               '/welcome': (context) => WelcomePage(),
               '/login': (context) => LoginPage(),

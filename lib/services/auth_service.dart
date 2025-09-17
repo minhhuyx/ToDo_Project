@@ -3,9 +3,6 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'api_service.dart';
 import 'dart:io';
 import 'package:http/http.dart' as http;
-import 'package:http_parser/http_parser.dart';
-
-
 
 class AuthService {
   final ApiService _apiService = ApiService();

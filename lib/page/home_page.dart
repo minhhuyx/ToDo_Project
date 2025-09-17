@@ -61,7 +61,8 @@ class _HomePageState extends State<HomePage> {
                     children: [
                       Text(
                         "Have a good day, ${user['username'] ?? 'Unknown'}",
-                        style: const TextStyle(fontSize: 25),
+                        style: const TextStyle(fontSize: 25,color: AppColors.primary,fontWeight: FontWeight.bold),
+
                       ),
                     ],
                   ),
@@ -77,7 +78,7 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
           SizedBox(height: 30),
-          Center(child: Text("Task Today", style: TextStyle(fontSize: 25))),
+          Center(child: Text("Task Today", style: TextStyle(fontSize: 25,color: AppColors.primary))),
           SizedBox(height: 20),
           SizedBox(
             height: 180,

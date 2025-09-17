@@ -1,5 +1,6 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:hive/hive.dart';
 import 'package:ungdung_ghichu/page/home_page.dart';
 import '../services/auth_service.dart';
 import '../widget/CustomTextField.dart';
@@ -26,6 +27,8 @@ class _LoginPageState extends State<LoginPage> {
     setState(() => loading = false);
 
     if (success) {
+      var settingsBox = await Hive.openBox('settingsBox');
+      await settingsBox.put('isLoggedIn', true);
       Navigator.pushNamedAndRemoveUntil(
         context,
         '/home',

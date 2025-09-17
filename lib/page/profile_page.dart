@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:hive/hive.dart';
 import 'package:ungdung_ghichu/page/setting_page.dart';
 import '../providers/user_provider.dart';
 import '../services/auth_service.dart';
@@ -7,6 +8,8 @@ import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
+
+import '../widget/feedbackdialog.dart';
 
 // Constants
 class ProfileConstants {
@@ -289,6 +292,8 @@ class _ProfilePageState extends State<ProfilePage> {
     );
     if (confirm == true) {
       await _authService.logout();
+      var settingsBox = await Hive.openBox('settingsBox');
+      await settingsBox.put('isLoggedIn', false);
       Navigator.pushReplacementNamed(context, '/login');
     }
   }
@@ -429,7 +434,12 @@ class _ProfilePageState extends State<ProfilePage> {
         ProfileMenuItem(
           icon: Icons.message,
           text: "Phản hồi",
-          onTap: _handleDeleteAccount,
+          onTap: () {
+            showDialog(
+              context: context,
+              builder: (context) => const FeedbackDialog(),
+            );
+          },
         ),
         ProfileMenuItem(
           icon: Icons.logout,

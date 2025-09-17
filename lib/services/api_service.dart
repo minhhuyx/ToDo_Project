@@ -1,9 +1,10 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class ApiService {
-  static const String baseUrl = "http://10.0.2.2:8000"; // Android Emulator
+  static String baseUrl = dotenv.env['BASE_URL'] ?? '';// Android Emulator
   final storage = const FlutterSecureStorage();
 
   // Singleton pattern

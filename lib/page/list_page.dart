@@ -140,183 +140,190 @@ class _ListPageState extends State<ListPage> {
 
     return StatefulBuilder(
       builder: (context, setModalState) {
-        return Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: theme.cardColor, // ✅ theo theme (Light/Dark)
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Thanh kéo
-              Container(
-                width: 40,
-                height: 4,
-                margin: const EdgeInsets.only(bottom: 12),
-                decoration: BoxDecoration(
-                  color: theme.dividerColor.withOpacity(0.5),
-                  borderRadius: BorderRadius.circular(2),
-                ),
+        return SafeArea(
+          child: SingleChildScrollView(
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: theme.cardColor, // ✅ theo theme (Light/Dark)
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
               ),
-
-              Text(
-                "Bộ lọc Task",
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              // Trạng thái
-              Text("Trạng thái", style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  ChoiceChip(
-                    label: const Text("Tất cả"),
-                    selected: tempStatus == "all",
-                    onSelected: (_) => setModalState(() => tempStatus = "all"),
-                  ),
-                  ChoiceChip(
-                    label: const Text("Completed"),
-                    selected: tempStatus == "completed",
-                    onSelected: (_) => setModalState(() => tempStatus = "completed"),
-                  ),
-                  ChoiceChip(
-                    label: const Text("Pending"),
-                    selected: tempStatus == "pending",
-                    onSelected: (_) => setModalState(() => tempStatus = "pending"),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-
-              // Category
-              Text("Danh mục", style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                children: [
-                  ChoiceChip(
-                    label: const Text("Tất cả"),
-                    selected: tempCategory == null,
-                    onSelected: (_) => setModalState(() => tempCategory = null),
-                  ),
-                  ChoiceChip(
-                    label: const Text("Note"),
-                    selected: tempCategory == "Note",
-                    onSelected: (_) => setModalState(() => tempCategory = "Note"),
-                  ),
-                  ChoiceChip(
-                    label: const Text("Calendar"),
-                    selected: tempCategory == "Calendar",
-                    onSelected: (_) => setModalState(() => tempCategory = "Calendar"),
-                  ),
-                  ChoiceChip(
-                    label: const Text("Achievement"),
-                    selected: tempCategory == "Achievement",
-                    onSelected: (_) => setModalState(() => tempCategory = "Achievement"),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-
-              // Ngày
-              Text("Ngày", style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                children: [
-                  ChoiceChip(
-                    label: const Text("Tất cả"),
-                    selected: tempDate == null,
-                    onSelected: (_) => setModalState(() => tempDate = null),
-                  ),
-                  ChoiceChip(
-                    label: Text(
-                      tempDate != null
-                          ? "${tempDate!.day}/${tempDate!.month}/${tempDate!.year}"
-                          : "Chọn ngày",
+                  // Thanh kéo
+                  Container(
+                    width: 40,
+                    height: 4,
+                    margin: const EdgeInsets.only(bottom: 12),
+                    decoration: BoxDecoration(
+                      color: theme.dividerColor.withOpacity(0.5),
+                      borderRadius: BorderRadius.circular(2),
                     ),
-                    selected: tempDate != null,
-                    onSelected: (_) async {
-                      final picked = await showDatePicker(
-                        context: context,
-                        initialDate: tempDate ?? DateTime.now(),
-                        firstDate: DateTime(2000),
-                        lastDate: DateTime(2100),
-                      );
-                      if (picked != null) {
-                        setModalState(() => tempDate = picked);
-                      }
-                    },
                   ),
-                ],
-              ),
-              const SizedBox(height: 24),
 
-              // Clear & Apply
-              Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () {
-                        setState(() {
-                          _selectedStatus = "all";
-                          _selectedCategory = null;
-                          _selectedDate = null;
-                        });
-                        Navigator.pop(context);
-                      },
-                      child: Text(
-                        "Clear",
-                        style: TextStyle(color: theme.colorScheme.error),
+                  Text(
+                    "Bộ lọc Task",
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Trạng thái
+                  Text("Trạng thái",
+                      style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    children: [
+                      ChoiceChip(
+                        label: const Text("Tất cả"),
+                        selected: tempStatus == "all",
+                        onSelected: (_) => setModalState(() => tempStatus = "all"),
                       ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: theme.scaffoldBackgroundColor,
-                        elevation: 0,
-                        side: BorderSide(color: theme.colorScheme.error),
-                        shape: const RoundedRectangleBorder(
-                          borderRadius: BorderRadius.only(
-                            topLeft: Radius.circular(12),
-                            bottomLeft: Radius.circular(12),
+                      ChoiceChip(
+                        label: const Text("Completed"),
+                        selected: tempStatus == "completed",
+                        onSelected: (_) => setModalState(() => tempStatus = "completed"),
+                      ),
+                      ChoiceChip(
+                        label: const Text("Pending"),
+                        selected: tempStatus == "pending",
+                        onSelected: (_) => setModalState(() => tempStatus = "pending"),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Category
+                  Text("Danh mục",
+                      style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    children: [
+                      ChoiceChip(
+                        label: const Text("Tất cả"),
+                        selected: tempCategory == null,
+                        onSelected: (_) => setModalState(() => tempCategory = null),
+                      ),
+                      ChoiceChip(
+                        label: const Text("Note"),
+                        selected: tempCategory == "Note",
+                        onSelected: (_) => setModalState(() => tempCategory = "Note"),
+                      ),
+                      ChoiceChip(
+                        label: const Text("Calendar"),
+                        selected: tempCategory == "Calendar",
+                        onSelected: (_) => setModalState(() => tempCategory = "Calendar"),
+                      ),
+                      ChoiceChip(
+                        label: const Text("Achievement"),
+                        selected: tempCategory == "Achievement",
+                        onSelected: (_) => setModalState(() => tempCategory = "Achievement"),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Ngày
+                  Text("Ngày",
+                      style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    children: [
+                      ChoiceChip(
+                        label: const Text("Tất cả"),
+                        selected: tempDate == null,
+                        onSelected: (_) => setModalState(() => tempDate = null),
+                      ),
+                      ChoiceChip(
+                        label: Text(
+                          tempDate != null
+                              ? "${tempDate!.day}/${tempDate!.month}/${tempDate!.year}"
+                              : "Chọn ngày",
+                        ),
+                        selected: tempDate != null,
+                        onSelected: (_) async {
+                          final picked = await showDatePicker(
+                            context: context,
+                            initialDate: tempDate ?? DateTime.now(),
+                            firstDate: DateTime(2000),
+                            lastDate: DateTime(2100),
+                          );
+                          if (picked != null) {
+                            setModalState(() => tempDate = picked);
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Clear & Apply
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () {
+                            setState(() {
+                              _selectedStatus = "all";
+                              _selectedCategory = null;
+                              _selectedDate = null;
+                            });
+                            Navigator.pop(context);
+                          },
+                          child: Text(
+                            "Clear",
+                            style: TextStyle(color: theme.colorScheme.error),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: theme.scaffoldBackgroundColor,
+                            elevation: 0,
+                            side: BorderSide(color: theme.colorScheme.error),
+                            shape: const RoundedRectangleBorder(
+                              borderRadius: BorderRadius.only(
+                                topLeft: Radius.circular(12),
+                                bottomLeft: Radius.circular(12),
+                              ),
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
                           ),
                         ),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
                       ),
-                    ),
-                  ),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () {
-                        setState(() {
-                          _selectedStatus = tempStatus;
-                          _selectedCategory = tempCategory;
-                          _selectedDate = tempDate;
-                        });
-                        Navigator.pop(context);
-                      },
-                      child: const Text("Apply"),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.teal,
-                        foregroundColor: Colors.white,
-                        shape: const RoundedRectangleBorder(
-                          borderRadius: BorderRadius.only(
-                            topRight: Radius.circular(12),
-                            bottomRight: Radius.circular(12),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () {
+                            setState(() {
+                              _selectedStatus = tempStatus;
+                              _selectedCategory = tempCategory;
+                              _selectedDate = tempDate;
+                            });
+                            Navigator.pop(context);
+                          },
+                          child: const Text("Apply"),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.teal,
+                            foregroundColor: Colors.white,
+                            shape: const RoundedRectangleBorder(
+                              borderRadius: BorderRadius.only(
+                                topRight: Radius.circular(12),
+                                bottomRight: Radius.circular(12),
+                              ),
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
                           ),
                         ),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
                       ),
-                    ),
+                    ],
                   ),
+                  const SizedBox(height: 16),
                 ],
               ),
-              const SizedBox(height: 16),
-            ],
+            ),
           ),
         );
       },
@@ -482,7 +489,9 @@ class _ListPageState extends State<ListPage> {
                             Icon(
                               FontAwesomeIcons.list,
                               size: 48,
-                              color: Theme.of(context).colorScheme.primary,
+                              color: Theme.of(context).brightness == Brightness.dark
+                                  ? Colors.white
+                                  : Colors.black,
                             ),
                             const SizedBox(height: 12),
                             Text(
